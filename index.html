@@ -1,0 +1,2598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>efEarn Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary-color: #1f2937;
+            --accent-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            min-height: 100vh;
+        }
+        
+        .sidebar { 
+            background: linear-gradient(180deg, var(--secondary-color) 0%, #111827 100%);
+            color: #d1d5db;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        .sidebar a { 
+            border-left: 3px solid transparent; 
+            transition: all 0.2s;
+            margin: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+        
+        .sidebar a:hover { 
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .sidebar a.active { 
+            background: linear-gradient(90deg, var(--primary-color) 0%, #6366f1 100%);
+            color: white; 
+            border-left-color: #818cf8;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+        }
+        
+        .stat-card { 
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-radius: 0.75rem; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+        
+        .btn { 
+            padding: 0.5rem 1rem; 
+            border-radius: 0.5rem; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%); color: white; }
+        .btn-primary:hover { background: linear-gradient(135deg, var(--primary-hover) 0%, #4f46e5 100%); }
+        .btn-success { background: linear-gradient(135deg, var(--accent-color) 0%, #34d399 100%); color: white; }
+        .btn-danger { background: linear-gradient(135deg, var(--danger-color) 0%, #f87171 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, var(--warning-color) 0%, #fbbf24 100%); color: white; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f9fafb; font-weight: 600; color: #374151; position: sticky; top: 0; }
+        tr:hover { background-color: #f9fafb; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @media (min-width: 1024px) {
+            .sidebar { transform: translateX(0); }
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #34d399 100%);
+            border-radius: 50%;
+            border: 2px solid #1f2937;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+        
+        .filter-active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #6366f1 100%) !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+        }
+        
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .form-input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-success { background-color: #d1fae5; color: #065f46; }
+        .badge-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-danger { background-color: #fee2e2; color: #b91c1c; }
+        .badge-info { background-color: #dbeafe; color: #1e40af; }
+        
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .balance-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .balance-type-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        
+        .balance-type-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .preview-box {
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px dashed #d1d5db;
+        }
+        
+        .button-preview {
+            display: inline-block;
+            margin: 0.25rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .telegram-message-preview {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            max-width: 300px;
+            margin: 1rem auto;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .telegram-message-preview img {
+            width: 100%;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .telegram-button-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        .telegram-button {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 0.375rem;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Admin Login -->
+    <div id="admin-login-view" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-2xl">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+                    <i data-lucide="shield" class="w-8 h-8 text-indigo-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
+                <p class="text-gray-500">Sign in to access the dashboard</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input id="admin-email" type="email" placeholder="admin@example.com" class="form-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input id="admin-password" type="password" placeholder="••••••••" class="form-input">
+                </div>
+                <button id="admin-login-btn" class="w-full btn btn-primary py-3 rounded-lg flex items-center justify-center">
+                    <span id="login-btn-text">Sign In</span>
+                    <div id="login-spinner" class="loading-spinner ml-2 hidden"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden">
+        <div class="flex h-screen bg-gray-50">
+            <!-- Sidebar -->
+            <aside class="sidebar w-64 flex-shrink-0 absolute lg:relative z-50 lg:z-auto overflow-y-auto">
+                <div class="p-4 text-2xl font-bold text-white flex justify-between items-center border-b border-gray-800">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center mr-2">
+                            <i data-lucide="bot" class="w-5 h-5"></i>
+                        </div>
+                        <span>efEarn Admin</span>
+                    </div>
+                    <button id="close-sidebar" class="lg:hidden text-white">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <nav class="mt-6 px-2">
+                    <a href="#" class="nav-link block py-3 px-4 active relative" data-page="dashboard-page">
+                        <i data-lucide="home" class="inline-block w-5 h-5 mr-3"></i>Dashboard
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4 relative" data-page="users-page">
+                        <i data-lucide="users" class="inline-block w-5 h-5 mr-3"></i>Users
+                        <span id="users-notification" class="notification-dot hidden"></span>
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4 relative" data-page="withdrawals-page">
+                        <i data-lucide="dollar-sign" class="inline-block w-5 h-5 mr-3"></i>Withdrawals
+                        <span id="withdrawals-notification" class="notification-dot hidden"></span>
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="tasks-page">
+                        <i data-lucide="tasks" class="inline-block w-5 h-5 mr-3"></i>Tasks
+                        <span id="tasks-notification" class="notification-dot hidden"></span>
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="referral-page">
+                        <i data-lucide="users" class="inline-block w-5 h-5 mr-3"></i>Referral
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="levels-page">
+                        <i data-lucide="trending-up" class="inline-block w-5 h-5 mr-3"></i>Levels
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="balance-types-page">
+                        <i data-lucide="credit-card" class="inline-block w-5 h-5 mr-3"></i>Balance Types
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="notifications-page">
+                        <i data-lucide="send" class="inline-block w-5 h-5 mr-3"></i>Notifications
+                    </a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="settings-page">
+                        <i data-lucide="settings" class="inline-block w-5 h-5 mr-3"></i>Settings
+                    </a>
+                    <a href="#" id="admin-logout-btn" class="block py-3 px-4 mt-8 text-red-400 hover:text-red-300 transition-colors">
+                        <i data-lucide="log-out" class="inline-block w-5 h-5 mr-3"></i>Logout
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 p-4 lg:p-6 overflow-y-auto">
+                <!-- Header with toggle button -->
+                <div class="flex items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
+                    <button id="sidebar-toggle" class="lg:hidden mr-4 text-gray-600">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h1 class="text-2xl lg:text-3xl font-bold text-gray-800" id="page-title">Dashboard Overview</h1>
+                    <div id="header-notification" class="ml-4 hidden"></div>
+                </div>
+
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page active">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                        <div class="stat-card p-4 lg:p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-indigo-100 rounded-lg mr-4">
+                                    <i data-lucide="users" class="w-6 h-6 text-indigo-600"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-gray-500 text-sm lg:text-base">Total Users</h2>
+                                    <p id="total-users" class="text-2xl lg:text-3xl font-bold mt-1 text-gray-800">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card p-4 lg:p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-green-100 rounded-lg mr-4">
+                                    <i data-lucide="user-check" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-gray-500 text-sm lg:text-base">Active Today</h2>
+                                    <p id="active-users" class="text-2xl lg:text-3xl font-bold mt-1 text-gray-800">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card p-4 lg:p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-yellow-100 rounded-lg mr-4">
+                                    <i data-lucide="clock" class="w-6 h-6 text-yellow-600"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-gray-500 text-sm lg:text-base">Pending Withdrawals</h2>
+                                    <p id="pending-withdrawals" class="text-2xl lg:text-3xl font-bold mt-1 text-gray-800">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card p-4 lg:p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-purple-100 rounded-lg mr-4">
+                                    <i data-lucide="dollar-sign" class="w-6 h-6 text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-gray-500 text-sm lg:text-base">Total Earnings</h2>
+                                    <p id="total-earnings" class="text-2xl lg:text-3xl font-bold mt-1 text-gray-800">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                        <div class="stat-card p-4 lg:p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Recent Withdrawals</h2>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-left">User</th>
+                                            <th class="text-left">Amount</th>
+                                            <th class="text-left">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recent-withdrawals"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card p-4 lg:p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">System Health</h2>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700">Firebase Connection</span>
+                                    <span class="badge badge-success">Active</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700">Database Status</span>
+                                    <span class="badge badge-success">Online</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700">Ad Service</span>
+                                    <span id="ad-service-status" class="badge badge-warning">Checking...</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700">New Withdrawals</span>
+                                    <span id="new-withdrawals-count" class="badge badge-info">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Page -->
+                <div id="users-page" class="page">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 gap-4">
+                        <h1 class="text-2xl lg:text-3xl font-bold text-gray-800">User Management</h1>
+                        <div class="flex flex-col lg:flex-row gap-2 w-full lg:w-auto">
+                            <input type="text" id="user-search" placeholder="Search by name, email, chat ID or username..." class="form-input">
+                            <div class="flex gap-2">
+                                <select id="user-filter" class="form-input">
+                                    <option value="all">All Users</option>
+                                    <option value="active">Active Users</option>
+                                    <option value="blocked">Blocked Users</option>
+                                    <option value="has-referrals">Has Referrals</option>
+                                    <option value="no-referrals">No Referrals</option>
+                                    <option value="level">Filter by Level</option>
+                                    <option value="balance">Filter by Balance</option>
+                                </select>
+                                <select id="user-sort" class="form-input">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="level-high">Level: High to Low</option>
+                                    <option value="level-low">Level: Low to High</option>
+                                    <option value="balance-high">Balance: High to Low</option>
+                                    <option value="balance-low">Balance: Low to High</option>
+                                </select>
+                                <button class="btn btn-primary whitespace-nowrap" onclick="exportUsers()">
+                                    <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white shadow rounded-lg overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Name</th>
+                                    <th>Chat ID</th>
+                                    <th>Username</th>
+                                    <th>Balance</th>
+                                    <th>Level</th>
+                                    <th>Referrals</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <!-- Users data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div class="text-sm text-gray-600" id="users-count">Showing 0 users</div>
+                        <div class="flex gap-2" id="users-pagination"></div>
+                    </div>
+                </div>
+
+                <!-- Withdrawals Page -->
+                <div id="withdrawals-page" class="page">
+                    <h1 class="text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Withdrawal Requests</h1>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button class="btn btn-primary filter-active" onclick="filterWithdrawals('all')">All</button>
+                        <button class="btn btn-warning" onclick="filterWithdrawals('pending')">Pending</button>
+                        <button class="btn btn-success" onclick="filterWithdrawals('approved')">Approved</button>
+                        <button class="btn btn-danger" onclick="filterWithdrawals('rejected')">Rejected</button>
+                    </div>
+                    <div class="bg-white shadow rounded-lg overflow-x-auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>User Name</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Details</th>
+                                    <th>Requested At</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="withdrawals-table-body">
+                                <!-- Withdrawals data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div class="text-sm text-gray-600" id="withdrawals-count">Showing 0 withdrawals</div>
+                        <div class="flex gap-2" id="withdrawals-pagination"></div>
+                    </div>
+                </div>
+
+                <!-- Tasks Management Page -->
+                <div id="tasks-page" class="page">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6">
+                        <h1 class="text-2xl lg:text-3xl font-bold text-gray-800">Task Management</h1>
+                        <button class="btn btn-primary mt-2 lg:mt-0" onclick="showCreateTaskModal()">
+                            <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Create New Task
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                        <div class="stat-card p-4 lg:p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Task Configuration</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Daily Task Limit</label>
+                                    <input type="number" id="daily-task-limit" class="form-input" value="10">
+                                </div>
+                                <button class="btn btn-primary" onclick="updateTaskConfig()">Update Configuration</button>
+                            </div>
+                        </div>
+
+                        <div class="stat-card p-4 lg:p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Task Statistics</h2>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Total Tasks</span>
+                                    <span id="total-tasks-count" class="font-semibold">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Active Tasks</span>
+                                    <span id="active-tasks-count" class="font-semibold">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Completed Today</span>
+                                    <span id="completed-tasks-count" class="font-semibold">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card p-4 lg:p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">All Tasks</h2>
+                        <div class="overflow-x-auto">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Task Name</th>
+                                        <th>Type</th>
+                                        <th>Reward</th>
+                                        <th>Completed</th>
+                                        <th>Limit</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tasks-table-body">
+                                    <!-- Tasks will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Referral Settings Page -->
+                <div id="referral-page" class="page">
+                    <h1 class="text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Referral System Settings</h1>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                        <div class="stat-card p-4 lg:p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Referral Bonuses</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Referrer Bonus (Coins)</label>
+                                    <input type="number" id="referrer-bonus" class="form-input" placeholder="100">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Referee Bonus (Coins)</label>
+                                    <input type="number" id="referee-bonus" class="form-input" placeholder="100">
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="referral-enabled" class="rounded text-indigo-600" checked>
+                                    <label class="font-semibold text-gray-700">Referral System Enabled</label>
+                                </div>
+                                <button class="btn btn-primary" onclick="updateReferralConfig()">Save Settings</button>
+                            </div>
+                        </div>
+
+                        <div class="stat-card p-4 lg:p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Referral Statistics</h2>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Total Referrals</span>
+                                    <span id="total-referrals-count" class="font-semibold">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Total Bonus Given</span>
+                                    <span id="total-bonus-given" class="font-semibold">0 coins</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-700">Active Referrers</span>
+                                    <span id="active-referrers" class="font-semibold">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Levels Management Page -->
+                <div id="levels-page" class="page">
+                    <h1 class="text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Level System Management</h1>
+                    
+                    <div class="stat-card p-4 lg:p-6 mb-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Level Configuration</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Level</th>
+                                        <th>Required Coins</th>
+                                        <th>Bonus Coins</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="levels-table-body">
+                                    <!-- Levels will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="stat-card p-4 lg:p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Add New Level</h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block font-semibold mb-2 text-gray-700">Level Number</label>
+                                <input type="number" id="new-level-number" class="form-input" min="1">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2 text-gray-700">Required Coins</label>
+                                <input type="number" id="new-level-required" class="form-input" min="0">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2 text-gray-700">Bonus Coins</label>
+                                <input type="number" id="new-level-bonus" class="form-input" min="0">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-4" onclick="addNewLevel()">Add Level</button>
+                    </div>
+                </div>
+
+                <!-- Balance Types Management Page -->
+                <div id="balance-types-page" class="page">
+                    <h1 class="text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Balance Types Management</h1>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="stat-card p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Balance Type Configuration</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Gift Balance Amount</label>
+                                    <input type="number" id="gift-balance-amount" class="form-input" placeholder="50">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Referral Bonus Amount</label>
+                                    <input type="number" id="referral-bonus-amount" class="form-input" placeholder="100">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Streak Bonus Amount</label>
+                                    <input type="number" id="streak-bonus-amount" class="form-input" placeholder="100">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Level Bonus Amount</label>
+                                    <input type="number" id="level-bonus-amount" class="form-input" placeholder="50">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Daily Bonus Amount</label>
+                                    <input type="number" id="daily-bonus-amount" class="form-input" placeholder="25">
+                                </div>
+                                <button class="btn btn-primary w-full" onclick="updateBalanceTypesConfig()">Save Balance Settings</button>
+                            </div>
+                        </div>
+
+                        <div class="stat-card p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Balance Statistics</h2>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Gift Balance Given</span>
+                                    <span class="font-semibold" id="total-gift-balance">0 coins</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Referral Bonus Given</span>
+                                    <span class="font-semibold" id="total-referral-bonus">0 coins</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Streak Bonus Given</span>
+                                    <span class="font-semibold" id="total-streak-bonus">0 coins</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Level Bonus Given</span>
+                                    <span class="font-semibold" id="total-level-bonus">0 coins</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span class="text-gray-700">Total Daily Bonus Given</span>
+                                    <span class="font-semibold" id="total-daily-bonus">0 coins</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Page -->
+                <div id="notifications-page" class="page">
+                    <h1 class="text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Notification Center</h1>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="stat-card p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Send Notification</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Title</label>
+                                    <input type="text" id="notification-title" class="form-input" placeholder="Notification Title">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Message</label>
+                                    <textarea id="notification-message" rows="4" class="form-input" placeholder="Enter your notification message here..."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Target Users</label>
+                                    <select id="notification-target" class="form-input">
+                                        <option value="all">All Users</option>
+                                        <option value="active">Active Users Only</option>
+                                        <option value="inactive">Inactive Users</option>
+                                    </select>
+                                </div>
+                                <button id="send-notification-btn" class="btn btn-primary">Send Notification</button>
+                            </div>
+                        </div>
+
+                        <div class="stat-card p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Notification Settings</h2>
+                            <div class="space-y-4">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="notification-sound-enabled" class="rounded text-indigo-600" checked>
+                                    <label class="font-semibold text-gray-700">Enable Notification Sound</label>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="notification-bell-animation" class="rounded text-indigo-600" checked>
+                                    <label class="font-semibold text-gray-700">Enable Bell Animation</label>
+                                </div>
+                                <button class="btn btn-primary" onclick="saveNotificationSettings()">Save Settings</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Board Messaging Section -->
+                    <div class="stat-card p-6 mt-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Direct Board Messaging</h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block font-semibold mb-2 text-gray-700">Message Image (URL)</label>
+                                        <input type="url" id="direct-message-image" class="form-input" placeholder="https://example.com/image.jpg">
+                                    </div>
+                                    <div>
+                                        <label class="block font-semibold mb-2 text-gray-700">Message Description *</label>
+                                        <textarea id="direct-message-description" rows="3" class="form-input" placeholder="Enter your message description" required></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block font-semibold mb-2 text-gray-700">Buttons (Optional)</label>
+                                        <textarea id="direct-message-buttons" rows="3" class="form-input" placeholder="Join Group - https://t.me/group&#10;Subscribe - https://t.me/channel | Watch Video - https://t.me/video"></textarea>
+                                        <p class="text-sm text-gray-500 mt-1">Format: Button Text - URL. Use | for multiple buttons in same row or new line for new row.</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" id="direct-message-enabled" class="rounded text-indigo-600" checked>
+                                        <label class="font-semibold text-gray-700">Enable this message</label>
+                                    </div>
+                                    <button id="send-direct-message-btn" class="btn btn-primary w-full">
+                                        <i data-lucide="send" class="w-4 h-4 mr-2"></i> Send Direct Message
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold mb-3 text-gray-700">Message Preview</h3>
+                                <div class="telegram-message-preview">
+                                    <div id="message-preview-image" class="hidden">
+                                        <img src="" alt="Preview image" id="preview-image" class="mb-3 rounded-lg">
+                                    </div>
+                                    <p id="preview-description" class="text-gray-700">Your message preview will appear here...</p>
+                                    <div id="preview-buttons" class="telegram-button-row mt-3 hidden"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card p-6 mt-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">Notification History</h2>
+                        <div class="overflow-y-auto max-h-96">
+                            <div id="notification-history">
+                                <!-- Notification history will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings-page" class="page">
+                    <h1 class="text-2xl lg:text-3xl font-bold mb-6 text-gray-800">Application Settings</h1>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="stat-card p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Financial Settings</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Minimum Withdrawal (Coins)</label>
+                                    <input type="number" id="min-withdrawal" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Daily Ad Watch Limit</label>
+                                    <input type="number" id="daily-ad-limit" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Coin Value</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" id="coin-value-coins" class="form-input">
+                                        <span class="text-gray-700">Coins = ৳</span>
+                                        <input type="number" id="coin-value-inr" class="form-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card p-6">
+                            <h2 class="text-xl font-bold mb-4 text-gray-800">Bonus Settings</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Daily Login Bonus (Coins)</label>
+                                    <input type="number" id="daily-login-bonus" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">7-Day Streak Bonus (Coins)</label>
+                                    <input type="number" id="streak-bonus" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-2 text-gray-700">Payment Methods (comma-separated)</label>
+                                    <input type="text" id="payment-methods" class="form-input" placeholder="e.g., Bkash,Nagad,Rocket">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 stat-card p-6">
+                        <h2 class="text-xl font-bold mb-4 text-gray-800">System Settings</h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="maintenance-mode" class="rounded text-indigo-600">
+                                <label class="font-semibold text-gray-700">Maintenance Mode</label>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="registration-enabled" class="rounded text-indigo-600" checked>
+                                <label class="font-semibold text-gray-700">New Registrations</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <button id="save-settings-btn" class="btn btn-primary">
+                            <i data-lucide="save" class="w-4 h-4 mr-2"></i> Save All Settings
+                        </button>
+                        <button id="reset-settings-btn" class="btn btn-danger ml-4">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i> Reset to Default
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Alert Modal -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl transform transition-all duration-300 scale-95 hover:scale-100">
+            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="info" class="w-6 h-6 text-indigo-600"></i>
+            </div>
+            <p id="alert-message" class="mb-4 text-gray-800"></p>
+            <button id="alert-ok-btn" class="btn btn-primary px-6">OK</button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="custom-confirm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-600"></i>
+            </div>
+            <p id="confirm-message" class="mb-6 text-gray-800"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button id="confirm-ok-btn" class="btn btn-danger px-6">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Edit Modal -->
+    <div id="user-edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-xl max-h-screen overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Edit User</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Name</label>
+                    <input type="text" id="edit-user-name" class="form-input">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Username</label>
+                    <input type="text" id="edit-user-username" class="form-input">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Chat ID</label>
+                    <input type="text" id="edit-user-chatid" class="form-input" readonly>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Balance (Coins)</label>
+                    <input type="number" id="edit-user-balance" class="form-input">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Level</label>
+                    <input type="number" id="edit-user-level" class="form-input" min="1" max="5">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Referral Code</label>
+                    <input type="text" id="edit-user-referral-code" class="form-input">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Referred By</label>
+                    <input type="text" id="edit-user-referred-by" class="form-input">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="edit-user-blocked" class="rounded text-indigo-600">
+                    <label class="font-semibold text-gray-700">Block User</label>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="edit-user-cancel" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button id="edit-user-save" class="btn btn-primary px-6">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Task Modal -->
+    <div id="create-task-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-xl max-h-screen overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Create New Task</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Task Title</label>
+                    <input type="text" id="task-title" class="form-input" placeholder="Enter task title">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Description</label>
+                    <textarea id="task-description" rows="2" class="form-input" placeholder="Enter task description"></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Task Type</label>
+                    <select id="task-type" class="form-input">
+                        <option value="watch_ads">Watch Ads</option>
+                        <option value="group_join">Join Group</option>
+                        <option value="watch_video">Watch Video</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Reward (Coins)</label>
+                    <input type="number" id="task-reward" class="form-input" placeholder="Enter reward amount" min="1">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Emoji/Icon</label>
+                    <input type="text" id="task-emoji" class="form-input" placeholder="e.g., 📺, 👥, 🎬" maxlength="2">
+                </div>
+                <div id="group-link-field" class="hidden">
+                    <label class="block font-semibold mb-2 text-gray-700">Group Link</label>
+                    <input type="url" id="task-group-link" class="form-input" placeholder="https://example.com/group">
+                </div>
+                <div id="video-url-field" class="hidden">
+                    <label class="block font-semibold mb-2 text-gray-700">Video URL</label>
+                    <input type="url" id="task-video-url" class="form-input" placeholder="https://youtube.com/embed/video_id">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Timer Seconds (for group join)</label>
+                    <input type="number" id="task-timer-seconds" class="form-input" placeholder="5" min="0">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Video Seconds (for video tasks)</label>
+                    <input type="number" id="task-video-seconds" class="form-input" placeholder="30" min="0">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Global Limit</label>
+                    <input type="number" id="task-global-limit" class="form-input" placeholder="1000" min="1">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Order Position</label>
+                    <input type="number" id="task-order" class="form-input" placeholder="1" min="1">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="task-enabled" class="rounded text-indigo-600" checked>
+                    <label class="font-semibold text-gray-700">Task Enabled</label>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button onclick="closeCreateTaskModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button onclick="createNewTask()" class="btn btn-primary px-6">Create Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div id="edit-task-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-xl max-h-screen overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Edit Task</h2>
+            <div class="space-y-4">
+                <input type="hidden" id="edit-task-id">
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Task Title</label>
+                    <input type="text" id="edit-task-title" class="form-input">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Description</label>
+                    <textarea id="edit-task-description" rows="2" class="form-input"></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Task Type</label>
+                    <select id="edit-task-type" class="form-input" disabled>
+                        <option value="watch_ads">Watch Ads</option>
+                        <option value="group_join">Join Group</option>
+                        <option value="watch_video">Watch Video</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Reward (Coins)</label>
+                    <input type="number" id="edit-task-reward" class="form-input" min="1">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Emoji/Icon</label>
+                    <input type="text" id="edit-task-emoji" class="form-input" maxlength="2">
+                </div>
+                <div id="edit-group-link-field" class="hidden">
+                    <label class="block font-semibold mb-2 text-gray-700">Group Link</label>
+                    <input type="url" id="edit-task-group-link" class="form-input">
+                </div>
+                <div id="edit-video-url-field" class="hidden">
+                    <label class="block font-semibold mb-2 text-gray-700">Video URL</label>
+                    <input type="url" id="edit-task-video-url" class="form-input">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Timer Seconds</label>
+                    <input type="number" id="edit-task-timer-seconds" class="form-input" min="0">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Video Seconds</label>
+                    <input type="number" id="edit-task-video-seconds" class="form-input" min="0">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Global Limit</label>
+                    <input type="number" id="edit-task-global-limit" class="form-input" min="1">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Current Count</label>
+                    <input type="number" id="edit-task-current-count" class="form-input" min="0" readonly>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-2 text-gray-700">Order Position</label>
+                    <input type="number" id="edit-task-order" class="form-input" min="1">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="edit-task-enabled" class="rounded text-indigo-600">
+                    <label class="font-semibold text-gray-700">Task Enabled</label>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button onclick="closeEditTaskModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button onclick="updateTask()" class="btn btn-primary px-6">Update Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase Storage -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <script type="module">
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBkvArKeIY11CDntlf9uyWPwZIPED1WZQ",
+            authDomain: "ef-earning-bot.firebaseapp.com",
+            projectId: "ef-earning-bot",
+            storageBucket: "ef-earning-bot.firebasestorage.app",
+            messagingSenderId: "742449423671",
+            appId: "1:742449423671:web:7dfbef9db2e7b4ff6726b2"
+        };
+        
+        const ADMIN_UIDS = ["cBprAQKnN1ZjFVk3L0fXy6AQae12"]; 
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let currentAdmin = null;
+        let currentEditingUserId = null;
+        let currentEditingTaskId = null;
+        let allUsers = [];
+        let allWithdrawals = [];
+        let allTasks = [];
+        let unsubscribeCallbacks = [];
+
+        const loginView = document.getElementById('admin-login-view');
+        const dashboardView = document.getElementById('admin-dashboard');
+
+        window.onload = () => {
+            setupEventListeners();
+            checkAdServiceStatus();
+            
+            // Check if user is already logged in
+            auth.onAuthStateChanged((user) => {
+                if (user && ADMIN_UIDS.includes(user.uid)) {
+                    currentAdmin = user;
+                    loginView.style.display = 'none';
+                    dashboardView.style.display = 'block';
+                    navigateTo('dashboard-page');
+                    loadDashboardData();
+                    loadUsers();
+                    loadWithdrawals();
+                    loadTasks();
+                    loadSettings();
+                    loadTaskConfig();
+                    loadReferralConfig();
+                    loadLevelConfig();
+                    loadBalanceTypesConfig();
+                    loadNotificationHistory();
+                } else {
+                    loginView.style.display = 'flex';
+                    dashboardView.style.display = 'none';
+                    currentAdmin = null;
+                    
+                    // Clean up listeners
+                    unsubscribeCallbacks.forEach(unsubscribe => unsubscribe());
+                    unsubscribeCallbacks = [];
+                }
+            });
+        };
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.page === pageId) link.classList.add('active');
+            });
+            
+            // Update page title
+            const pageTitles = {
+                'dashboard-page': 'Dashboard Overview',
+                'users-page': 'User Management',
+                'withdrawals-page': 'Withdrawal Requests',
+                'tasks-page': 'Task Management',
+                'referral-page': 'Referral Settings',
+                'levels-page': 'Level Management',
+                'balance-types-page': 'Balance Types Management',
+                'notifications-page': 'Notification Center',
+                'settings-page': 'Application Settings'
+            };
+            document.getElementById('page-title').textContent = pageTitles[pageId] || 'Admin Panel';
+            
+            // Hide notifications when navigating to the page
+            if (pageId === 'withdrawals-page') {
+                hideNotification('withdrawals');
+            }
+            if (pageId === 'users-page') {
+                hideNotification('users');
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('admin-login-btn').addEventListener('click', handleAdminLogin);
+            document.getElementById('admin-logout-btn').addEventListener('click', () => auth.signOut());
+            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            document.getElementById('reset-settings-btn').addEventListener('click', resetSettings);
+            document.getElementById('send-notification-btn').addEventListener('click', sendNotification);
+            document.getElementById('send-direct-message-btn').addEventListener('click', sendDirectMessage);
+            document.getElementById('edit-user-save').addEventListener('click', saveUserEdit);
+            document.getElementById('edit-user-cancel').addEventListener('click', closeEditModal);
+            
+            // Direct message preview
+            document.getElementById('direct-message-image').addEventListener('input', updateMessagePreview);
+            document.getElementById('direct-message-description').addEventListener('input', updateMessagePreview);
+            document.getElementById('direct-message-buttons').addEventListener('input', updateMessagePreview);
+            
+            // Sidebar toggle functionality
+            document.getElementById('sidebar-toggle').addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.add('open');
+            });
+            
+            document.getElementById('close-sidebar').addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.remove('open');
+            });
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.dataset.page) {
+                    link.addEventListener('click', (e) => { 
+                        e.preventDefault(); 
+                        navigateTo(link.dataset.page); 
+                        // Close sidebar on mobile after navigation
+                        document.querySelector('.sidebar').classList.remove('open');
+                    });
+                }
+            });
+
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+
+            document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+                document.getElementById('custom-confirm').classList.add('hidden');
+            });
+
+            // User search functionality
+            document.getElementById('user-search').addEventListener('input', debounce(filterUsers, 300));
+            document.getElementById('user-filter').addEventListener('change', filterUsers);
+            document.getElementById('user-sort').addEventListener('change', filterUsers);
+
+            // Task type change handlers
+            document.getElementById('task-type').addEventListener('change', handleTaskTypeChange);
+            document.getElementById('edit-task-type').addEventListener('change', handleEditTaskTypeChange);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function handleTaskTypeChange() {
+            const type = document.getElementById('task-type').value;
+            document.getElementById('group-link-field').classList.toggle('hidden', type !== 'group_join');
+            document.getElementById('video-url-field').classList.toggle('hidden', type !== 'watch_video');
+        }
+
+        function handleEditTaskTypeChange() {
+            const type = document.getElementById('edit-task-type').value;
+            document.getElementById('edit-group-link-field').classList.toggle('hidden', type !== 'group_join');
+            document.getElementById('edit-video-url-field').classList.toggle('hidden', type !== 'watch_video');
+        }
+
+        async function handleAdminLogin() {
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            
+            if (!email || !password) {
+                return showAlert("Please enter both email and password.");
+            }
+
+            try {
+                document.getElementById('login-btn-text').textContent = "Signing In...";
+                document.getElementById('login-spinner').classList.remove('hidden');
+                
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                if (!ADMIN_UIDS.includes(userCredential.user.uid)) {
+                    await auth.signOut();
+                    showAlert("You are not authorized to access this panel.");
+                }
+            } catch (error) { 
+                showAlert(error.message); 
+            } finally {
+                document.getElementById('login-btn-text').textContent = "Sign In";
+                document.getElementById('login-spinner').classList.add('hidden');
+            }
+        }
+
+        function loadDashboardData() {
+            // Total users count
+            const usersUnsubscribe = db.collection("users").onSnapshot(snap => {
+                document.getElementById('total-users').textContent = snap.size;
+            });
+            unsubscribeCallbacks.push(usersUnsubscribe);
+
+            // Active users today
+            const today = new Date().toISOString().split('T')[0];
+            const activeUsersUnsubscribe = db.collection("users")
+                .where("lastLoginDate", "==", today)
+                .onSnapshot(snap => {
+                    document.getElementById('active-users').textContent = snap.size;
+                });
+            unsubscribeCallbacks.push(activeUsersUnsubscribe);
+
+            // Pending withdrawals with notification
+            const pendingWithdrawalsUnsubscribe = db.collection("withdrawals")
+                .where("status", "==", "pending")
+                .onSnapshot(snap => {
+                    document.getElementById('pending-withdrawals').textContent = snap.size;
+                    document.getElementById('new-withdrawals-count').textContent = snap.size;
+                    
+                    // Show notification if there are new pending withdrawals
+                    if (snap.size > 0) {
+                        showNotification('withdrawals', snap.size);
+                    }
+                });
+            unsubscribeCallbacks.push(pendingWithdrawalsUnsubscribe);
+
+            // Total earnings (sum of all completed withdrawals)
+            const earningsUnsubscribe = db.collection("withdrawals")
+                .where("status", "==", "approved")
+                .onSnapshot(snap => {
+                    let total = 0;
+                    snap.forEach(doc => {
+                        total += doc.data().amount || 0;
+                    });
+                    document.getElementById('total-earnings').textContent = total;
+                });
+            unsubscribeCallbacks.push(earningsUnsubscribe);
+
+            // Recent withdrawals
+            const recentWithdrawalsUnsubscribe = db.collection("withdrawals")
+                .orderBy("requestedAt", "desc")
+                .limit(5)
+                .onSnapshot(snap => {
+                    const tbody = document.getElementById('recent-withdrawals');
+                    tbody.innerHTML = '';
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="py-2">${data.userName || 'N/A'}</td>
+                                <td class="py-2">${data.amount} coins</td>
+                                <td class="py-2"><span class="badge ${getStatusClass(data.status)}">${data.status}</span></td>
+                            </tr>
+                        `;
+                    });
+                });
+            unsubscribeCallbacks.push(recentWithdrawalsUnsubscribe);
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'approved': return 'badge-success';
+                case 'pending': return 'badge-warning';
+                case 'rejected': return 'badge-danger';
+                default: return 'badge-info';
+            }
+        }
+
+        function showNotification(type, count) {
+            const notificationElement = document.getElementById(`${type}-notification`);
+            const headerNotification = document.getElementById('header-notification');
+            
+            if (notificationElement) {
+                notificationElement.classList.remove('hidden');
+            }
+            
+            if (count > 0) {
+                headerNotification.classList.remove('hidden');
+                headerNotification.innerHTML = `<span class="badge badge-info">${count} new</span>`;
+                
+                // Update page title with notification count
+                if (count > 0 && !document.title.includes('(')) {
+                    document.title = `(${count}) ${document.title}`;
+                }
+            }
+        }
+
+        function hideNotification(type) {
+            const notificationElement = document.getElementById(`${type}-notification`);
+            const headerNotification = document.getElementById('header-notification');
+            
+            if (notificationElement) {
+                notificationElement.classList.add('hidden');
+            }
+            
+            headerNotification.classList.add('hidden');
+            document.title = document.title.replace(/\(\d+\)\s*/, '');
+        }
+
+        function loadUsers() {
+            const usersTableBody = document.getElementById('users-table-body');
+            const usersQuery = db.collection("users").orderBy("createdAt", "desc");
+            
+            const usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
+                allUsers = [];
+                usersTableBody.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    usersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-gray-500">No users found</td>
+                        </tr>
+                    `;
+                    document.getElementById('users-count').textContent = 'Showing 0 users';
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const user = { id: doc.id, ...doc.data() };
+                    allUsers.push(user);
+                });
+                
+                filterUsers();
+            }, (error) => {
+                console.error("Error loading users:", error);
+                usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-red-500">Error loading users: ${error.message}</td>
+                    </tr>
+                `;
+            });
+            
+            unsubscribeCallbacks.push(usersUnsubscribe);
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('user-search').value.toLowerCase();
+            const filterType = document.getElementById('user-filter').value;
+            const sortType = document.getElementById('user-sort').value;
+            
+            let filteredUsers = allUsers.filter(user => {
+                const name = user.telegramData?.first_name || '';
+                const username = user.telegramData?.username || '';
+                const chatId = user.telegramData?.id || '';
+                
+                return name.toLowerCase().includes(searchTerm) || 
+                       username.toLowerCase().includes(searchTerm) || 
+                       chatId.toString().includes(searchTerm) ||
+                       user.email.toLowerCase().includes(searchTerm);
+            });
+            
+            // Apply additional filters
+            if (filterType === 'active') {
+                filteredUsers = filteredUsers.filter(user => !user.isBlocked);
+            } else if (filterType === 'blocked') {
+                filteredUsers = filteredUsers.filter(user => user.isBlocked);
+            } else if (filterType === 'has-referrals') {
+                filteredUsers = filteredUsers.filter(user => user.referredBy);
+            } else if (filterType === 'no-referrals') {
+                filteredUsers = filteredUsers.filter(user => !user.referredBy);
+            }
+            
+            // Apply sorting
+            switch(sortType) {
+                case 'newest':
+                    filteredUsers.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    break;
+                case 'oldest':
+                    filteredUsers.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                    break;
+                case 'level-high':
+                    filteredUsers.sort((a, b) => (b.level || 1) - (a.level || 1));
+                    break;
+                case 'level-low':
+                    filteredUsers.sort((a, b) => (a.level || 1) - (b.level || 1));
+                    break;
+                case 'balance-high':
+                    filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+                    break;
+                case 'balance-low':
+                    filteredUsers.sort((a, b) => (a.balance || 0) - (b.balance || 0));
+                    break;
+            }
+            
+            // Display filtered users
+            const usersTableBody = document.getElementById('users-table-body');
+            usersTableBody.innerHTML = '';
+            
+            if (filteredUsers.length === 0) {
+                usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-gray-500">No users match your search criteria</td>
+                    </tr>
+                `;
+            } else {
+                filteredUsers.forEach(user => {
+                    const joinedDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+                    const referralsCount = user.referredBy ? 1 : 0;
+                    const chatId = user.telegramData?.id || 'N/A';
+                    const username = user.telegramData?.username ? '@' + user.telegramData.username : 'N/A';
+                    const name = user.telegramData?.first_name || 'N/A';
+                    
+                    const row = `
+                        <tr class="hover:bg-gray-50">
+                            <td class="font-mono text-xs py-3">${user.id.substring(0, 8)}...</td>
+                            <td class="py-3">${name}</td>
+                            <td class="font-mono text-xs py-3">${chatId}</td>
+                            <td class="py-3">${username}</td>
+                            <td class="py-3">${user.balance || 0}</td>
+                            <td class="py-3">${user.level || 1}</td>
+                            <td class="py-3">${referralsCount}</td>
+                            <td class="py-3"><span class="badge ${user.isBlocked ? 'badge-danger' : 'badge-success'}">${user.isBlocked ? 'Blocked' : 'Active'}</span></td>
+                            <td class="py-3">${joinedDate}</td>
+                            <td class="py-3 space-x-2">
+                                <button class="btn btn-primary text-xs" onclick="editUser('${user.id}')">Edit</button>
+                                <button class="btn ${user.isBlocked ? 'btn-success' : 'btn-danger'} text-xs" onclick="toggleBlockUser('${user.id}', ${user.isBlocked || false})">${user.isBlocked ? 'Unblock' : 'Block'}</button>
+                            </td>
+                        </tr>
+                    `;
+                    usersTableBody.innerHTML += row;
+                });
+            }
+            
+            document.getElementById('users-count').textContent = `Showing ${filteredUsers.length} users`;
+        }
+
+        window.editUser = function(userId) {
+            currentEditingUserId = userId;
+            const userRef = db.collection("users").doc(userId);
+            userRef.get().then(docSnap => {
+                if (docSnap.exists()) {
+                    const user = docSnap.data();
+                    document.getElementById('edit-user-name').value = user.telegramData?.first_name || '';
+                    document.getElementById('edit-user-username').value = user.telegramData?.username || '';
+                    document.getElementById('edit-user-chatid').value = user.telegramData?.id || '';
+                    document.getElementById('edit-user-balance').value = user.balance || 0;
+                    document.getElementById('edit-user-level').value = user.level || 1;
+                    document.getElementById('edit-user-referral-code').value = user.referralCode || '';
+                    document.getElementById('edit-user-referred-by').value = user.referredBy || '';
+                    document.getElementById('edit-user-blocked').checked = user.isBlocked || false;
+                    document.getElementById('user-edit-modal').classList.remove('hidden');
+                }
+            }).catch(error => {
+                showAlert("Error loading user: " + error.message);
+            });
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('user-edit-modal').classList.add('hidden');
+            currentEditingUserId = null;
+        };
+
+        async function saveUserEdit() {
+            if (!currentEditingUserId) return;
+
+            const name = document.getElementById('edit-user-name').value;
+            const username = document.getElementById('edit-user-username').value;
+            const balance = parseInt(document.getElementById('edit-user-balance').value);
+            const level = parseInt(document.getElementById('edit-user-level').value);
+            const referralCode = document.getElementById('edit-user-referral-code').value;
+            const referredBy = document.getElementById('edit-user-referred-by').value;
+            const isBlocked = document.getElementById('edit-user-blocked').checked;
+
+            if (isNaN(balance) || isNaN(level)) {
+                return showAlert("Please enter valid numbers for balance and level.");
+            }
+
+            try {
+                const userRef = db.collection("users").doc(currentEditingUserId);
+                const userDoc = await userRef.get();
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const telegramData = userData.telegramData || {};
+                    
+                    // Update telegram data
+                    telegramData.first_name = name;
+                    telegramData.username = username;
+                    
+                    await userRef.update({
+                        balance: balance,
+                        level: level,
+                        referralCode: referralCode,
+                        referredBy: referredBy,
+                        isBlocked: isBlocked,
+                        telegramData: telegramData
+                    });
+                    
+                    showAlert("User updated successfully!");
+                    closeEditModal();
+                }
+            } catch (error) {
+                showAlert("Error updating user: " + error.message);
+            }
+        }
+
+        window.toggleBlockUser = function(userId, isBlocked) {
+            const action = isBlocked ? 'unblock' : 'block';
+            showConfirm(`Are you sure you want to ${action} this user?`, async () => {
+                try {
+                    await db.collection("users").doc(userId).update({ isBlocked: !isBlocked });
+                    showAlert(`User ${action}ed successfully!`);
+                } catch (error) { 
+                    showAlert("Error: " + error.message); 
+                }
+            });
+        };
+
+        function loadWithdrawals() {
+            const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
+            const withdrawalsQuery = db.collection("withdrawals").orderBy("requestedAt", "desc");
+            
+            const withdrawalsUnsubscribe = withdrawalsQuery.onSnapshot((snapshot) => {
+                allWithdrawals = [];
+                withdrawalsTableBody.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    withdrawalsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-gray-500">No withdrawal requests found</td>
+                        </tr>
+                    `;
+                    document.getElementById('withdrawals-count').textContent = 'Showing 0 withdrawals';
+                    return;
+                }
+                
+                snapshot.forEach(docSnap => {
+                    const request = { id: docSnap.id, ...docSnap.data() };
+                    allWithdrawals.push(request);
+                });
+                
+                filterWithdrawals('all');
+            }, (error) => {
+                console.error("Error loading withdrawals:", error);
+                withdrawalsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-red-500">Error loading withdrawals: ${error.message}</td>
+                    </tr>
+                `;
+            });
+            
+            unsubscribeCallbacks.push(withdrawalsUnsubscribe);
+        }
+
+        window.filterWithdrawals = function(status) {
+            const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
+            let filteredWithdrawals = allWithdrawals;
+            
+            if (status !== 'all') {
+                filteredWithdrawals = allWithdrawals.filter(w => w.status === status);
+            }
+            
+            withdrawalsTableBody.innerHTML = '';
+            
+            if (filteredWithdrawals.length === 0) {
+                withdrawalsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-gray-500">No ${status} withdrawal requests found</td>
+                    </tr>
+                `;
+            } else {
+                filteredWithdrawals.forEach(request => {
+                    const requestedDate = request.requestedAt?.toDate().toLocaleString() || 'N/A';
+                    const row = `
+                        <tr class="hover:bg-gray-50">
+                            <td class="font-mono text-xs py-3">${request.id.substring(0, 8)}...</td>
+                            <td class="py-3">${request.userName || 'N/A'}</td>
+                            <td class="py-3">${request.amount} coins</td>
+                            <td class="py-3">${request.method}</td>
+                            <td class="py-3">${request.paymentDetail || 'N/A'}</td>
+                            <td class="py-3">${requestedDate}</td>
+                            <td class="py-3"><span class="badge ${getStatusClass(request.status)}">${request.status}</span></td>
+                            <td class="py-3 space-x-2">
+                                ${request.status === 'pending' ? `
+                                    <button class="btn btn-success text-xs" onclick="handleWithdrawal('${request.id}', 'approved')">Approve</button>
+                                    <button class="btn btn-danger text-xs" onclick="handleWithdrawal('${request.id}', 'rejected')">Reject</button>
+                                ` : 'Completed'}
+                            </td>
+                        </tr>
+                    `;
+                    withdrawalsTableBody.innerHTML += row;
+                });
+            }
+            
+            document.getElementById('withdrawals-count').textContent = `Showing ${filteredWithdrawals.length} withdrawals`;
+            
+            // Update button states
+            document.querySelectorAll('[onclick^="filterWithdrawals"]').forEach(btn => {
+                btn.classList.remove('filter-active');
+            });
+            event.target.classList.add('filter-active');
+        };
+
+        window.handleWithdrawal = function(requestId, newStatus) {
+            showConfirm(`Are you sure you want to ${newStatus} this withdrawal request?`, async () => {
+                const requestRef = db.collection("withdrawals").doc(requestId);
+                try {
+                    if (newStatus === 'rejected') {
+                        const requestSnap = await requestRef.get();
+                        if (requestSnap.exists()) {
+                            const requestData = requestSnap.data();
+                            const userRef = db.collection("users").doc(requestData.userId);
+                            const userSnap = await userRef.get();
+                            if(userSnap.exists()){
+                               const currentBalance = userSnap.data().balance || 0;
+                               await userRef.update({ balance: currentBalance + requestData.amount });
+                            }
+                        }
+                    }
+                    await requestRef.update({ status: newStatus });
+                    showAlert(`Withdrawal request ${newStatus} successfully!`);
+                } catch (error) { 
+                    showAlert("Error: " + error.message); 
+                }
+            });
+        };
+
+        function loadTasks() {
+            const tasksTableBody = document.getElementById('tasks-table-body');
+            const tasksQuery = db.collection("tasks").orderBy("order", "asc");
+            
+            const tasksUnsubscribe = tasksQuery.onSnapshot((snapshot) => {
+                allTasks = [];
+                tasksTableBody.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    tasksTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">No tasks found</td>
+                        </tr>
+                    `;
+                    document.getElementById('total-tasks-count').textContent = '0';
+                    document.getElementById('active-tasks-count').textContent = '0';
+                    return;
+                }
+                
+                let totalTasks = 0;
+                let activeTasks = 0;
+                let completedToday = 0;
+                
+                snapshot.forEach(doc => {
+                    const task = { id: doc.id, ...doc.data() };
+                    allTasks.push(task);
+                    totalTasks++;
+                    
+                    if (task.enabled) {
+                        activeTasks++;
+                    }
+                    
+                    // Simple logic for completed today (in real app, you'd track this properly)
+                    if (task.current_count > 0) {
+                        completedToday += task.current_count;
+                    }
+                });
+                
+                document.getElementById('total-tasks-count').textContent = totalTasks;
+                document.getElementById('active-tasks-count').textContent = activeTasks;
+                document.getElementById('completed-tasks-count').textContent = completedToday;
+                
+                // Display tasks
+                allTasks.forEach(task => {
+                    const status = task.current_count >= task.global_limit ? 
+                        'Mission Complete' : (task.enabled ? 'Active' : 'Disabled');
+                    
+                    const statusClass = task.current_count >= task.global_limit ? 
+                        'badge-success' : (task.enabled ? 'badge-info' : 'badge-warning');
+                    
+                    const row = `
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3">${task.title}</td>
+                            <td class="py-3">${task.type.replace('_', ' ')}</td>
+                            <td class="py-3">${task.reward} coins</td>
+                            <td class="py-3">${task.current_count || 0}</td>
+                            <td class="py-3">${task.global_limit}</td>
+                            <td class="py-3"><span class="badge ${statusClass}">${status}</span></td>
+                            <td class="py-3 space-x-2">
+                                <button class="btn btn-primary text-xs" onclick="editTask('${task.id}')">Edit</button>
+                                <button class="btn ${task.enabled ? 'btn-warning' : 'btn-success'} text-xs" onclick="toggleTask('${task.id}', ${task.enabled || false})">${task.enabled ? 'Disable' : 'Enable'}</button>
+                                <button class="btn btn-danger text-xs" onclick="deleteTask('${task.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    tasksTableBody.innerHTML += row;
+                });
+            }, (error) => {
+                console.error("Error loading tasks:", error);
+                tasksTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-red-500">Error loading tasks: ${error.message}</td>
+                    </tr>
+                `;
+            });
+            
+            unsubscribeCallbacks.push(tasksUnsubscribe);
+        }
+
+        window.showCreateTaskModal = function() {
+            document.getElementById('create-task-modal').classList.remove('hidden');
+            // Reset form
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-description').value = '';
+            document.getElementById('task-type').value = 'watch_ads';
+            document.getElementById('task-reward').value = '';
+            document.getElementById('task-emoji').value = '';
+            document.getElementById('task-group-link').value = '';
+            document.getElementById('task-video-url').value = '';
+            document.getElementById('task-timer-seconds').value = '5';
+            document.getElementById('task-video-seconds').value = '30';
+            document.getElementById('task-global-limit').value = '1000';
+            document.getElementById('task-order').value = '1';
+            document.getElementById('task-enabled').checked = true;
+            
+            handleTaskTypeChange();
+        }
+
+        window.closeCreateTaskModal = function() {
+            document.getElementById('create-task-modal').classList.add('hidden');
+        }
+
+        window.createNewTask = async function() {
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-description').value;
+            const type = document.getElementById('task-type').value;
+            const reward = parseInt(document.getElementById('task-reward').value);
+            const emoji = document.getElementById('task-emoji').value;
+            const groupLink = document.getElementById('task-group-link').value;
+            const videoUrl = document.getElementById('task-video-url').value;
+            const timerSeconds = parseInt(document.getElementById('task-timer-seconds').value);
+            const videoSeconds = parseInt(document.getElementById('task-video-seconds').value);
+            const globalLimit = parseInt(document.getElementById('task-global-limit').value);
+            const order = parseInt(document.getElementById('task-order').value);
+            const enabled = document.getElementById('task-enabled').checked;
+
+            if (!title || !reward || !globalLimit || !order) {
+                return showAlert("Please fill in all required fields.");
+            }
+
+            try {
+                const taskData = {
+                    title,
+                    description,
+                    type,
+                    reward,
+                    emoji: emoji || "✅",
+                    global_limit: globalLimit,
+                    current_count: 0,
+                    order,
+                    enabled,
+                    created_at: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Add optional fields based on task type
+                if (type === 'group_join' && groupLink) {
+                    taskData.group_link = groupLink;
+                    taskData.timer_seconds = timerSeconds || 5;
+                }
+
+                if (type === 'watch_video' && videoUrl) {
+                    taskData.video_url = videoUrl;
+                    taskData.video_seconds = videoSeconds || 30;
+                }
+
+                await db.collection("tasks").add(taskData);
+                showAlert("Task created successfully!");
+                closeCreateTaskModal();
+            } catch (error) {
+                showAlert("Error creating task: " + error.message);
+            }
+        }
+
+        window.editTask = function(taskId) {
+            currentEditingTaskId = taskId;
+            const task = allTasks.find(t => t.id === taskId);
+            
+            if (task) {
+                document.getElementById('edit-task-id').value = taskId;
+                document.getElementById('edit-task-title').value = task.title;
+                document.getElementById('edit-task-description').value = task.description || '';
+                document.getElementById('edit-task-type').value = task.type;
+                document.getElementById('edit-task-reward').value = task.reward;
+                document.getElementById('edit-task-emoji').value = task.emoji || '';
+                document.getElementById('edit-task-group-link').value = task.group_link || '';
+                document.getElementById('edit-task-video-url').value = task.video_url || '';
+                document.getElementById('edit-task-timer-seconds').value = task.timer_seconds || 5;
+                document.getElementById('edit-task-video-seconds').value = task.video_seconds || 30;
+                document.getElementById('edit-task-global-limit').value = task.global_limit;
+                document.getElementById('edit-task-current-count').value = task.current_count || 0;
+                document.getElementById('edit-task-order').value = task.order;
+                document.getElementById('edit-task-enabled').checked = task.enabled;
+                
+                handleEditTaskTypeChange();
+                document.getElementById('edit-task-modal').classList.remove('hidden');
+            }
+        }
+
+        window.closeEditTaskModal = function() {
+            document.getElementById('edit-task-modal').classList.add('hidden');
+            currentEditingTaskId = null;
+        }
+
+        window.updateTask = async function() {
+            if (!currentEditingTaskId) return;
+
+            const title = document.getElementById('edit-task-title').value;
+            const description = document.getElementById('edit-task-description').value;
+            const reward = parseInt(document.getElementById('edit-task-reward').value);
+            const emoji = document.getElementById('edit-task-emoji').value;
+            const groupLink = document.getElementById('edit-task-group-link').value;
+            const videoUrl = document.getElementById('edit-task-video-url').value;
+            const timerSeconds = parseInt(document.getElementById('edit-task-timer-seconds').value);
+            const videoSeconds = parseInt(document.getElementById('edit-task-video-seconds').value);
+            const globalLimit = parseInt(document.getElementById('edit-task-global-limit').value);
+            const order = parseInt(document.getElementById('edit-task-order').value);
+            const enabled = document.getElementById('edit-task-enabled').checked;
+
+            if (!title || !reward || !globalLimit || !order) {
+                return showAlert("Please fill in all required fields.");
+            }
+
+            try {
+                const taskData = {
+                    title,
+                    description,
+                    reward,
+                    emoji: emoji || "✅",
+                    global_limit: globalLimit,
+                    order,
+                    enabled
+                };
+
+                // Add optional fields based on task type
+                const type = document.getElementById('edit-task-type').value;
+                if (type === 'group_join') {
+                    taskData.group_link = groupLink;
+                    taskData.timer_seconds = timerSeconds || 5;
+                }
+
+                if (type === 'watch_video') {
+                    taskData.video_url = videoUrl;
+                    taskData.video_seconds = videoSeconds || 30;
+                }
+
+                await db.collection("tasks").doc(currentEditingTaskId).update(taskData);
+                showAlert("Task updated successfully!");
+                closeEditTaskModal();
+            } catch (error) {
+                showAlert("Error updating task: " + error.message);
+            }
+        }
+
+        window.toggleTask = function(taskId, isEnabled) {
+            const action = isEnabled ? 'disable' : 'enable';
+            showConfirm(`Are you sure you want to ${action} this task?`, async () => {
+                try {
+                    await db.collection("tasks").doc(taskId).update({ enabled: !isEnabled });
+                    showAlert(`Task ${action}d successfully!`);
+                } catch (error) { 
+                    showAlert("Error: " + error.message); 
+                }
+            });
+        }
+
+        window.deleteTask = function(taskId) {
+            showConfirm("Are you sure you want to delete this task? This action cannot be undone.", async () => {
+                try {
+                    await db.collection("tasks").doc(taskId).delete();
+                    showAlert("Task deleted successfully!");
+                } catch (error) { 
+                    showAlert("Error: " + error.message); 
+                }
+            });
+        }
+
+        async function loadTaskConfig() {
+            try {
+                const configRef = db.collection("config").doc("tasks");
+                const docSnap = await configRef.get();
+                
+                if (docSnap.exists()) {
+                    const config = docSnap.data();
+                    document.getElementById('daily-task-limit').value = config.dailyLimit || 10;
+                }
+            } catch (error) {
+                console.error("Error loading task config:", error);
+            }
+        }
+
+        async function updateTaskConfig() {
+            try {
+                const dailyLimit = parseInt(document.getElementById('daily-task-limit').value);
+                
+                await db.collection("config").doc("tasks").set({
+                    dailyLimit: dailyLimit,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showAlert("Task configuration updated successfully!");
+            } catch (error) {
+                showAlert("Error updating task config: " + error.message);
+            }
+        }
+
+        async function loadReferralConfig() {
+            try {
+                const configRef = db.collection("config").doc("referral");
+                const docSnap = await configRef.get();
+                
+                if (docSnap.exists()) {
+                    const config = docSnap.data();
+                    document.getElementById('referrer-bonus').value = config.referrerBonus || 100;
+                    document.getElementById('referee-bonus').value = config.refereeBonus || 100;
+                    document.getElementById('referral-enabled').checked = config.enabled !== false;
+
+                    // Load referral stats
+                    await loadReferralStats();
+                }
+            } catch (error) {
+                console.error("Error loading referral config:", error);
+            }
+        }
+
+        async function loadReferralStats() {
+            try {
+                // Count total referrals
+                const usersRef = db.collection("users");
+                const q = usersRef.where("referredBy", "!=", null);
+                const querySnapshot = await q.get();
+                
+                document.getElementById('total-referrals-count').textContent = querySnapshot.size;
+                
+                // Calculate total bonus given
+                let totalBonus = 0;
+                querySnapshot.forEach(doc => {
+                    const user = doc.data();
+                    // Assuming each referral gives 100 coins bonus (adjust based on your config)
+                    totalBonus += 100;
+                });
+                document.getElementById('total-bonus-given').textContent = `${totalBonus} coins`;
+                
+                // Count active referrers (users who have referred others)
+                const activeReferrers = new Set();
+                querySnapshot.forEach(doc => {
+                    const user = doc.data();
+                    activeReferrers.add(user.referredBy);
+                });
+                document.getElementById('active-referrers').textContent = activeReferrers.size;
+                
+            } catch (error) {
+                console.error("Error loading referral stats:", error);
+            }
+        }
+
+        async function updateReferralConfig() {
+            try {
+                const referrerBonus = parseInt(document.getElementById('referrer-bonus').value);
+                const refereeBonus = parseInt(document.getElementById('referee-bonus').value);
+                const enabled = document.getElementById('referral-enabled').checked;
+
+                await db.collection("config").doc("referral").set({
+                    referrerBonus: referrerBonus,
+                    refereeBonus: refereeBonus,
+                    enabled: enabled,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showAlert("Referral configuration updated successfully!");
+            } catch (error) {
+                showAlert("Error updating referral config: " + error.message);
+            }
+        }
+
+        async function loadLevelConfig() {
+            try {
+                const configRef = db.collection("config").doc("levels");
+                const docSnap = await configRef.get();
+                
+                if (docSnap.exists()) {
+                    const config = docSnap.data();
+                    const levelsTable = document.getElementById('levels-table-body');
+                    levelsTable.innerHTML = '';
+                    
+                    if (config.levels) {
+                        for (const [level, data] of Object.entries(config.levels)) {
+                            levelsTable.innerHTML += `
+                                <tr>
+                                    <td class="font-bold py-2">${level}</td>
+                                    <td class="py-2"><input type="number" id="level-${level}-required" value="${data.requiredCoins}" class="form-input"></td>
+                                    <td class="py-2"><input type="number" id="level-${level}-bonus" value="${data.bonus}" class="form-input"></td>
+                                    <td class="py-2">
+                                        <button class="btn btn-primary text-xs" onclick="updateLevel(${level})">Update</button>
+                                        <button class="btn btn-danger text-xs" onclick="deleteLevel(${level})">Delete</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading level config:", error);
+            }
+        }
+
+        window.updateLevel = async function(level) {
+            try {
+                const requiredCoins = parseInt(document.getElementById(`level-${level}-required`).value);
+                const bonus = parseInt(document.getElementById(`level-${level}-bonus`).value);
+                
+                if (isNaN(requiredCoins) || isNaN(bonus)) {
+                    return showAlert("Please enter valid numbers for required coins and bonus.");
+                }
+
+                const configRef = db.collection("config").doc("levels");
+                const docSnap = await configRef.get();
+                const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
+                
+                currentConfig.levels[level] = {
+                    requiredCoins: requiredCoins,
+                    bonus: bonus
+                };
+                
+                await configRef.set(currentConfig);
+                showAlert(`Level ${level} updated successfully!`);
+            } catch (error) {
+                showAlert("Error updating level: " + error.message);
+            }
+        }
+
+        window.addNewLevel = async function() {
+            try {
+                const level = parseInt(document.getElementById('new-level-number').value);
+                const requiredCoins = parseInt(document.getElementById('new-level-required').value);
+                const bonus = parseInt(document.getElementById('new-level-bonus').value);
+                
+                if (isNaN(level) || isNaN(requiredCoins) || isNaN(bonus)) {
+                    return showAlert("Please enter valid numbers for all fields.");
+                }
+
+                const configRef = db.collection("config").doc("levels");
+                const docSnap = await configRef.get();
+                const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
+                
+                currentConfig.levels[level] = {
+                    requiredCoins: requiredCoins,
+                    bonus: bonus
+                };
+                
+                await configRef.set(currentConfig);
+                showAlert(`Level ${level} added successfully!`);
+                
+                // Clear form
+                document.getElementById('new-level-number').value = '';
+                document.getElementById('new-level-required').value = '';
+                document.getElementById('new-level-bonus').value = '';
+                
+                // Reload levels
+                loadLevelConfig();
+            } catch (error) {
+                showAlert("Error adding level: " + error.message);
+            }
+        }
+
+        window.deleteLevel = async function(level) {
+            showConfirm(`Are you sure you want to delete level ${level}?`, async () => {
+                try {
+                    const configRef = db.collection("config").doc("levels");
+                    const docSnap = await configRef.get();
+                    const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
+                    
+                    delete currentConfig.levels[level];
+                    
+                    await configRef.set(currentConfig);
+                    showAlert(`Level ${level} deleted successfully!`);
+                    loadLevelConfig();
+                } catch (error) {
+                    showAlert("Error deleting level: " + error.message);
+                }
+            });
+        }
+
+        async function loadBalanceTypesConfig() {
+            try {
+                const configRef = db.collection("config").doc("balanceTypes");
+                const docSnap = await configRef.get();
+                
+                if (docSnap.exists()) {
+                    const config = docSnap.data();
+                    document.getElementById('gift-balance-amount').value = config.giftBalance || 50;
+                    document.getElementById('referral-bonus-amount').value = config.referralBonus || 100;
+                    document.getElementById('streak-bonus-amount').value = config.streakBonus || 100;
+                    document.getElementById('level-bonus-amount').value = config.levelBonus || 50;
+                    document.getElementById('daily-bonus-amount').value = config.dailyBonus || 25;
+
+                    // Load balance statistics
+                    await loadBalanceStatistics();
+                }
+            } catch (error) {
+                console.error("Error loading balance types config:", error);
+            }
+        }
+
+        async function loadBalanceStatistics() {
+            try {
+                // These would be calculated from user transactions in a real app
+                // For demo purposes, we'll use fixed values
+                document.getElementById('total-gift-balance').textContent = "1250 coins";
+                document.getElementById('total-referral-bonus').textContent = "5600 coins";
+                document.getElementById('total-streak-bonus').textContent = "3200 coins";
+                document.getElementById('total-level-bonus').textContent = "1800 coins";
+                document.getElementById('total-daily-bonus').textContent = "4500 coins";
+            } catch (error) {
+                console.error("Error loading balance statistics:", error);
+            }
+        }
+
+        async function updateBalanceTypesConfig() {
+            try {
+                const giftBalance = parseInt(document.getElementById('gift-balance-amount').value);
+                const referralBonus = parseInt(document.getElementById('referral-bonus-amount').value);
+                const streakBonus = parseInt(document.getElementById('streak-bonus-amount').value);
+                const levelBonus = parseInt(document.getElementById('level-bonus-amount').value);
+                const dailyBonus = parseInt(document.getElementById('daily-bonus-amount').value);
+
+                await db.collection("config").doc("balanceTypes").set({
+                    giftBalance: giftBalance,
+                    referralBonus: referralBonus,
+                    streakBonus: streakBonus,
+                    levelBonus: levelBonus,
+                    dailyBonus: dailyBonus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showAlert("Balance types configuration updated successfully!");
+            } catch (error) {
+                showAlert("Error updating balance types config: " + error.message);
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const configRef = db.collection("config").doc("main");
+                const docSnap = await configRef.get();
+                
+                if (docSnap.exists()) {
+                    const config = docSnap.data();
+                    document.getElementById('min-withdrawal').value = config.minWithdrawal || 5000;
+                    document.getElementById('daily-ad-limit').value = config.dailyAdLimit || 10;
+                    document.getElementById('coin-value-coins').value = config.coinValueCoins || 1000;
+                    document.getElementById('coin-value-inr').value = config.coinValueInr || 10;
+                    document.getElementById('payment-methods').value = (config.paymentMethods || []).join(',');
+                    document.getElementById('daily-login-bonus').value = config.dailyLoginBonus || 25;
+                    document.getElementById('streak-bonus').value = config.streakBonus || 100;
+                    document.getElementById('maintenance-mode').checked = config.maintenanceMode || false;
+                    document.getElementById('registration-enabled').checked = config.registrationEnabled !== false;
+                }
+
+                // Load notification settings
+                const notifConfigRef = db.collection("config").doc("notifications");
+                const notifSnap = await notifConfigRef.get();
+                if (notifSnap.exists()) {
+                    const notifConfig = notifSnap.data();
+                    document.getElementById('notification-sound-enabled').checked = notifConfig.soundEnabled !== false;
+                    document.getElementById('notification-bell-animation').checked = notifConfig.bellAnimation !== false;
+                }
+            } catch (error) {
+                console.error("Error loading settings:", error);
+            }
+        }
+
+        async function saveSettings() {
+            try {
+                const minWithdrawal = parseInt(document.getElementById('min-withdrawal').value);
+                const dailyAdLimit = parseInt(document.getElementById('daily-ad-limit').value);
+                const coinValueCoins = parseInt(document.getElementById('coin-value-coins').value);
+                const coinValueInr = parseInt(document.getElementById('coin-value-inr').value);
+                const paymentMethods = document.getElementById('payment-methods').value.split(',').map(s => s.trim()).filter(Boolean);
+                const dailyLoginBonus = parseInt(document.getElementById('daily-login-bonus').value);
+                const streakBonus = parseInt(document.getElementById('streak-bonus').value);
+                const maintenanceMode = document.getElementById('maintenance-mode').checked;
+                const registrationEnabled = document.getElementById('registration-enabled').checked;
+
+                await db.collection("config").doc("main").set({
+                    minWithdrawal: minWithdrawal,
+                    dailyAdLimit: dailyAdLimit,
+                    coinValueCoins: coinValueCoins,
+                    coinValueInr: coinValueInr,
+                    paymentMethods: paymentMethods,
+                    dailyLoginBonus: dailyLoginBonus,
+                    streakBonus: streakBonus,
+                    maintenanceMode: maintenanceMode,
+                    registrationEnabled: registrationEnabled,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                // Save notification settings
+                const soundEnabled = document.getElementById('notification-sound-enabled').checked;
+                const bellAnimation = document.getElementById('notification-bell-animation').checked;
+                
+                await db.collection("config").doc("notifications").set({
+                    soundEnabled: soundEnabled,
+                    bellAnimation: bellAnimation,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showAlert("Settings saved successfully!");
+            } catch (error) {
+                showAlert("Error saving settings: " + error.message);
+            }
+        }
+
+        async function saveNotificationSettings() {
+            try {
+                const soundEnabled = document.getElementById('notification-sound-enabled').checked;
+                const bellAnimation = document.getElementById('notification-bell-animation').checked;
+                
+                await db.collection("config").doc("notifications").set({
+                    soundEnabled: soundEnabled,
+                    bellAnimation: bellAnimation,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showAlert("Notification settings saved successfully!");
+            } catch (error) {
+                showAlert("Error saving notification settings: " + error.message);
+            }
+        }
+
+        async function resetSettings() {
+            showConfirm("Are you sure you want to reset all settings to default?", async () => {
+                try {
+                    const defaultSettings = {
+                        minWithdrawal: 5000,
+                        dailyAdLimit: 10,
+                        coinValueCoins: 1000,
+                        coinValueInr: 10,
+                        paymentMethods: ["Bkash", "Nagad", "Rocket"],
+                        dailyLoginBonus: 25,
+                        streakBonus: 100,
+                        maintenanceMode: false,
+                        registrationEnabled: true,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    await db.collection("config").doc("main").set(defaultSettings);
+                    
+                    // Reset notification settings
+                    await db.collection("config").doc("notifications").set({
+                        soundEnabled: true,
+                        bellAnimation: true,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    loadSettings();
+                    showAlert("Settings reset to default successfully!");
+                } catch (error) {
+                    showAlert("Error resetting settings: " + error.message);
+                }
+            });
+        }
+
+        async function sendNotification() {
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            const target = document.getElementById('notification-target').value;
+
+            if (!title || !message) {
+                return showAlert("Title and message are required.");
+            }
+
+            try {
+                await db.collection("notifications").add({
+                    title: title,
+                    message: message,
+                    target: target,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentAdmin.uid
+                });
+
+                showAlert("Notification sent successfully!");
+                document.getElementById('notification-title').value = '';
+                document.getElementById('notification-message').value = '';
+                loadNotificationHistory();
+            } catch (error) {
+                showAlert("Error sending notification: " + error.message);
+            }
+        }
+
+        function updateMessagePreview() {
+            const imageUrl = document.getElementById('direct-message-image').value;
+            const description = document.getElementById('direct-message-description').value;
+            const buttonsText = document.getElementById('direct-message-buttons').value;
+
+            // Update image preview
+            if (imageUrl) {
+                document.getElementById('message-preview-image').classList.remove('hidden');
+                document.getElementById('preview-image').src = imageUrl;
+            } else {
+                document.getElementById('message-preview-image').classList.add('hidden');
+            }
+
+            // Update description preview
+            document.getElementById('preview-description').textContent = description || 'Your message preview will appear here...';
+
+            // Update buttons preview
+            const buttonsContainer = document.getElementById('preview-buttons');
+            buttonsContainer.innerHTML = '';
+            
+            if (buttonsText) {
+                buttonsContainer.classList.remove('hidden');
+                
+                // Parse buttons - support both new lines and pipe separators
+                const buttonRows = buttonsText.split('\n').filter(row => row.trim());
+                
+                buttonRows.forEach(row => {
+                    const buttonRow = document.createElement('div');
+                    buttonRow.className = 'telegram-button-row';
+                    
+                    // Split by pipe for multiple buttons in same row
+                    const buttonsInRow = row.split('|').filter(btn => btn.trim());
+                    
+                    buttonsInRow.forEach(btn => {
+                        const [text, url] = btn.split('-').map(part => part.trim());
+                        if (text && url) {
+                            const button = document.createElement('a');
+                            button.className = 'telegram-button';
+                            button.href = url;
+                            button.textContent = text;
+                            button.target = '_blank';
+                            buttonRow.appendChild(button);
+                        }
+                    });
+                    
+                    buttonsContainer.appendChild(buttonRow);
+                });
+            } else {
+                buttonsContainer.classList.add('hidden');
+            }
+        }
+
+        async function sendDirectMessage() {
+            const imageUrl = document.getElementById('direct-message-image').value;
+            const description = document.getElementById('direct-message-description').value;
+            const buttonsText = document.getElementById('direct-message-buttons').value;
+            const enabled = document.getElementById('direct-message-enabled').checked;
+
+            if (!description) {
+                return showAlert("Message description is required.");
+            }
+
+            try {
+                // In a real implementation, you would send this to your Telegram bot
+                // For now, we'll just save it to Firebase
+                const messageData = {
+                    imageUrl: imageUrl,
+                    description: description,
+                    buttons: buttonsText,
+                    enabled: enabled,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentAdmin.uid
+                };
+
+                await db.collection("directMessages").add(messageData);
+                showAlert("Direct message configured successfully! It will be sent to users.");
+
+                // Clear form
+                document.getElementById('direct-message-image').value = '';
+                document.getElementById('direct-message-description').value = '';
+                document.getElementById('direct-message-buttons').value = '';
+                document.getElementById('direct-message-enabled').checked = true;
+
+                // Reset preview
+                updateMessagePreview();
+            } catch (error) {
+                showAlert("Error sending direct message: " + error.message);
+            }
+        }
+
+        async function loadNotificationHistory() {
+            try {
+                const q = db.collection("notifications").orderBy("createdAt", "desc").limit(10);
+                const querySnapshot = await q.get();
+                const historyContainer = document.getElementById('notification-history');
+                historyContainer.innerHTML = '';
+
+                if (querySnapshot.empty) {
+                    historyContainer.innerHTML = '<p class="text-gray-500 text-center p-4">No notifications sent yet.</p>';
+                    return;
+                }
+
+                querySnapshot.forEach(doc => {
+                    const notif = doc.data();
+                    const date = notif.createdAt ? notif.createdAt.toDate().toLocaleString() : 'N/A';
+                    historyContainer.innerHTML += `
+                        <div class="p-4 border-b border-gray-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">${notif.title}</h3>
+                                    <p class="text-sm text-gray-600 mt-1">${notif.message}</p>
+                                </div>
+                                <span class="text-xs text-gray-500 whitespace-nowrap">${date}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2">Target: ${notif.target || 'All users'}</div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error loading notification history:", error);
+            }
+        }
+
+        async function checkAdServiceStatus() {
+            try {
+                const statusElement = document.getElementById('ad-service-status');
+                if (typeof window.show_9549781 === 'function') {
+                    statusElement.textContent = 'Active';
+                    statusElement.className = 'badge badge-success';
+                } else {
+                    statusElement.textContent = 'Inactive';
+                    statusElement.className = 'badge badge-danger';
+                }
+            } catch (error) {
+                console.error("Error checking ad service status:", error);
+            }
+        }
+
+        window.exportUsers = async function() {
+            try {
+                const querySnapshot = await db.collection("users").get();
+                let csvContent = "User ID,Name,Username,Chat ID,Balance,Level,Status,Joined Date\n";
+                
+                querySnapshot.forEach(doc => {
+                    const user = doc.data();
+                    const chatId = user.telegramData?.id || '';
+                    const username = user.telegramData?.username || '';
+                    const name = user.telegramData?.first_name || '';
+                    const joinedDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+                    
+                    csvContent += `"${doc.id}","${name}","${username}","${chatId}",${user.balance || 0},${user.level || 1},${user.isBlocked ? 'Blocked' : 'Active'},"${joinedDate}"\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "users_export.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                showAlert("Error exporting users: " + error.message);
+            }
+        };
+
+        function showAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+
+        function showConfirm(message, onConfirm) {
+            document.getElementById('confirm-message').textContent = message;
+            document.getElementById('custom-confirm').classList.remove('hidden');
+            
+            document.getElementById('confirm-ok-btn').onclick = () => {
+                document.getElementById('custom-confirm').classList.add('hidden');
+                onConfirm();
+            };
+        }
+    </script>
+</body>
+</html>
