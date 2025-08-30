@@ -1109,1602 +1109,1602 @@
     <!-- Firebase Storage -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-    <script type="module">
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDBkvArKeIY11CDntlf9uyWPwZIPED1WZQ",
-            authDomain: "ef-earning-bot.firebaseapp.com",
-            projectId: "ef-earning-bot",
-            storageBucket: "ef-earning-bot.firebasestorage.app",
-            messagingSenderId: "742449423671",
-            appId: "1:742449423671:web:7dfbef9db2e7b4ff6726b2"
-        };
+   <script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDBkvArKeIY11CDntlf9uyWPwZIPED1WZQ",
+        authDomain: "ef-earning-bot.firebaseapp.com",
+        projectId: "ef-earning-bot",
+        storageBucket: "ef-earning-bot.firebasestorage.app",
+        messagingSenderId: "742449423671",
+        appId: "1:742449423671:web:7dfbef9db2e7b4ff6726b2"
+    };
+    
+    const ADMIN_UIDS = ["cBprAQKnN1ZjFVk3L0fXy6AQae12"]; 
+    const BOT_TOKEN = "8462268800:AAGOBk5qLVLB8xonpJcoBsWjSlCkB6TC-dw"; // আপনার বট টোকেন এখানে সেট করুন
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    let currentAdmin = null;
+    let currentEditingUserId = null;
+    let currentEditingTaskId = null;
+    let allUsers = [];
+    let allWithdrawals = [];
+    let allTasks = [];
+    let unsubscribeCallbacks = [];
+
+    const loginView = document.getElementById('admin-login-view');
+    const dashboardView = document.getElementById('admin-dashboard');
+
+    // ভার্সন ডিসপ্লে
+    const versionBadge = document.createElement('div');
+    versionBadge.className = 'version-badge';
+    versionBadge.textContent = 'v2.1.0';
+    document.body.appendChild(versionBadge);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupEventListeners();
+        checkAdServiceStatus();
         
-        const ADMIN_UIDS = ["cBprAQKnN1ZjFVk3L0fXy6AQae12"]; 
-        const BOT_TOKEN = "8462268800:AAGOBk5qLVLB8xonpJcoBsWjSlCkB6TC-dw"; // আপনার বট টোকেন এখানে সেট করুন
+        // Firebase Auth State Listener
+        auth.onAuthStateChanged((user) => {
+            if (user && ADMIN_UIDS.includes(user.uid)) {
+                currentAdmin = user;
+                loginView.style.display = 'none';
+                dashboardView.style.display = 'block';
+                navigateTo('dashboard-page');
+                loadDashboardData();
+                loadUsers();
+                loadWithdrawals();
+                loadTasks();
+                loadSettings();
+                loadTaskConfig();
+                loadReferralConfig();
+                loadLevelConfig();
+                loadBalanceTypesConfig();
+                loadNotificationHistory();
+            } else {
+                loginView.style.display = 'flex';
+                dashboardView.style.display = 'none';
+                currentAdmin = null;
+                
+                // Clean up listeners
+                unsubscribeCallbacks.forEach(unsubscribe => unsubscribe());
+                unsubscribeCallbacks = [];
+            }
+        });
+    });
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        let currentAdmin = null;
-        let currentEditingUserId = null;
-        let currentEditingTaskId = null;
-        let allUsers = [];
-        let allWithdrawals = [];
-        let allTasks = [];
-        let unsubscribeCallbacks = [];
-
-        const loginView = document.getElementById('admin-login-view');
-        const dashboardView = document.getElementById('admin-dashboard');
-
-        // ভার্সন ডিসপ্লে
-        const versionBadge = document.createElement('div');
-        versionBadge.className = 'version-badge';
-        versionBadge.textContent = 'v2.1.0';
-        document.body.appendChild(versionBadge);
-
-        window.onload = () => {
-            setupEventListeners();
-            checkAdServiceStatus();
-            
-            // Check if user is already logged in
-            auth.onAuthStateChanged((user) => {
-                if (user && ADMIN_UIDS.includes(user.uid)) {
-                    currentAdmin = user;
-                    loginView.style.display = 'none';
-                    dashboardView.style.display = 'block';
-                    navigateTo('dashboard-page');
-                    loadDashboardData();
-                    loadUsers();
-                    loadWithdrawals();
-                    loadTasks();
-                    loadSettings();
-                    loadTaskConfig();
-                    loadReferralConfig();
-                    loadLevelConfig();
-                    loadBalanceTypesConfig();
-                    loadNotificationHistory();
-                } else {
-                    loginView.style.display = 'flex';
-                    dashboardView.style.display = 'none';
-                    currentAdmin = null;
-                    
-                    // Clean up listeners
-                    unsubscribeCallbacks.forEach(unsubscribe => unsubscribe());
-                    unsubscribeCallbacks = [];
-                }
-            });
+    function navigateTo(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.dataset.page === pageId) link.classList.add('active');
+        });
+        
+        // Update page title
+        const pageTitles = {
+            'dashboard-page': 'Dashboard Overview',
+            'users-page': 'User Management',
+            'withdrawals-page': 'Withdrawal Requests',
+            'tasks-page': 'Task Management',
+            'referral-page': 'Referral Settings',
+            'levels-page': 'Level Management',
+            'balance-types-page': 'Balance Types Management',
+            'notifications-page': 'Notification Center',
+            'settings-page': 'Application Settings'
         };
-
-        function navigateTo(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-                if (link.dataset.page === pageId) link.classList.add('active');
-            });
-            
-            // Update page title
-            const pageTitles = {
-                'dashboard-page': 'Dashboard Overview',
-                'users-page': 'User Management',
-                'withdrawals-page': 'Withdrawal Requests',
-                'tasks-page': 'Task Management',
-                'referral-page': 'Referral Settings',
-                'levels-page': 'Level Management',
-                'balance-types-page': 'Balance Types Management',
-                'notifications-page': 'Notification Center',
-                'settings-page': 'Application Settings'
-            };
-            document.getElementById('page-title').textContent = pageTitles[pageId] || 'Admin Panel';
-            
-            // Hide notifications when navigating to the page
-            if (pageId === 'withdrawals-page') {
-                hideNotification('withdrawals');
-            }
-            if (pageId === 'users-page') {
-                hideNotification('users');
-            }
+        document.getElementById('page-title').textContent = pageTitles[pageId] || 'Admin Panel';
+        
+        // Hide notifications when navigating to the page
+        if (pageId === 'withdrawals-page') {
+            hideNotification('withdrawals');
         }
-
-        function setupEventListeners() {
-            document.getElementById('admin-login-btn').addEventListener('click', handleAdminLogin);
-            document.getElementById('admin-logout-btn').addEventListener('click', () => auth.signOut());
-            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
-            document.getElementById('reset-settings-btn').addEventListener('click', resetSettings);
-            document.getElementById('send-notification-btn').addEventListener('click', sendNotification);
-            document.getElementById('send-direct-message-btn').addEventListener('click', sendDirectMessage);
-            document.getElementById('edit-user-save').addEventListener('click', saveUserEdit);
-            document.getElementById('edit-user-cancel').addEventListener('click', closeEditModal);
-            
-            // Direct message preview
-            document.getElementById('direct-message-image').addEventListener('input', updateMessagePreview);
-            document.getElementById('direct-message-description').addEventListener('input', updateMessagePreview);
-            document.getElementById('direct-message-buttons').addEventListener('input', updateMessagePreview);
-            document.getElementById('direct-message-target').addEventListener('change', function() {
-                document.getElementById('custom-users-container').classList.toggle('hidden', this.value !== 'custom');
-            });
-            
-            // Sidebar toggle functionality
-            document.getElementById('sidebar-toggle').addEventListener('click', () => {
-                document.querySelector('.sidebar').classList.add('open');
-            });
-            
-            document.getElementById('close-sidebar').addEventListener('click', () => {
-                document.querySelector('.sidebar').classList.remove('open');
-            });
-
-            document.querySelectorAll('.nav-link').forEach(link => {
-                if (link.dataset.page) {
-                    link.addEventListener('click', (e) => { 
-                        e.preventDefault(); 
-                        navigateTo(link.dataset.page); 
-                        // Close sidebar on mobile after navigation
-                        document.querySelector('.sidebar').classList.remove('open');
-                    });
-                }
-            });
-
-            document.getElementById('alert-ok-btn').addEventListener('click', () => {
-                document.getElementById('custom-alert').classList.add('hidden');
-            });
-
-            document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
-                document.getElementById('custom-confirm').classList.add('hidden');
-            });
-
-            // User search functionality
-            document.getElementById('user-search').addEventListener('input', debounce(filterUsers, 300));
-            document.getElementById('user-filter').addEventListener('change', filterUsers);
-            document.getElementById('user-sort').addEventListener('change', filterUsers);
-
-            // Task type change handlers
-            document.getElementById('task-type').addEventListener('change', handleTaskTypeChange);
-            document.getElementById('edit-task-type').addEventListener('change', handleEditTaskTypeChange);
+        if (pageId === 'users-page') {
+            hideNotification('users');
         }
+    }
 
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
+    function setupEventListeners() {
+        document.getElementById('admin-login-btn').addEventListener('click', handleAdminLogin);
+        document.getElementById('admin-logout-btn').addEventListener('click', () => auth.signOut());
+        document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+        document.getElementById('reset-settings-btn').addEventListener('click', resetSettings);
+        document.getElementById('send-notification-btn').addEventListener('click', sendNotification);
+        document.getElementById('send-direct-message-btn').addEventListener('click', sendDirectMessage);
+        document.getElementById('edit-user-save').addEventListener('click', saveUserEdit);
+        document.getElementById('edit-user-cancel').addEventListener('click', closeEditModal);
+        
+        // Direct message preview
+        document.getElementById('direct-message-image').addEventListener('input', updateMessagePreview);
+        document.getElementById('direct-message-description').addEventListener('input', updateMessagePreview);
+        document.getElementById('direct-message-buttons').addEventListener('input', updateMessagePreview);
+        document.getElementById('direct-message-target').addEventListener('change', function() {
+            document.getElementById('custom-users-container').classList.toggle('hidden', this.value !== 'custom');
+        });
+        
+        // Sidebar toggle functionality
+        document.getElementById('sidebar-toggle').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.add('open');
+        });
+        
+        document.getElementById('close-sidebar').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.remove('open');
+        });
+
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.dataset.page) {
+                link.addEventListener('click', (e) => { 
+                    e.preventDefault(); 
+                    navigateTo(link.dataset.page); 
+                    // Close sidebar on mobile after navigation
+                    document.querySelector('.sidebar').classList.remove('open');
+                });
+            }
+        });
+
+        document.getElementById('alert-ok-btn').addEventListener('click', () => {
+            document.getElementById('custom-alert').classList.add('hidden');
+        });
+
+        document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+            document.getElementById('custom-confirm').classList.add('hidden');
+        });
+
+        // User search functionality
+        document.getElementById('user-search').addEventListener('input', debounce(filterUsers, 300));
+        document.getElementById('user-filter').addEventListener('change', filterUsers);
+        document.getElementById('user-sort').addEventListener('change', filterUsers);
+
+        // Task type change handlers
+        document.getElementById('task-type').addEventListener('change', handleTaskTypeChange);
+        document.getElementById('edit-task-type').addEventListener('change', handleEditTaskTypeChange);
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
                 clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
+                func(...args);
             };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    function handleTaskTypeChange() {
+        const type = document.getElementById('task-type').value;
+        document.getElementById('group-link-field').classList.toggle('hidden', type !== 'group_join');
+        document.getElementById('video-url-field').classList.toggle('hidden', type !== 'watch_video');
+    }
+
+    function handleEditTaskTypeChange() {
+        const type = document.getElementById('edit-task-type').value;
+        document.getElementById('edit-group-link-field').classList.toggle('hidden', type !== 'group_join');
+        document.getElementById('edit-video-url-field').classList.toggle('hidden', type !== 'watch_video');
+    }
+
+    async function handleAdminLogin() {
+        const email = document.getElementById('admin-email').value;
+        const password = document.getElementById('admin-password').value;
+        
+        if (!email || !password) {
+            return showAlert("Please enter both email and password.");
         }
 
-        function handleTaskTypeChange() {
-            const type = document.getElementById('task-type').value;
-            document.getElementById('group-link-field').classList.toggle('hidden', type !== 'group_join');
-            document.getElementById('video-url-field').classList.toggle('hidden', type !== 'watch_video');
-        }
-
-        function handleEditTaskTypeChange() {
-            const type = document.getElementById('edit-task-type').value;
-            document.getElementById('edit-group-link-field').classList.toggle('hidden', type !== 'group_join');
-            document.getElementById('edit-video-url-field').classList.toggle('hidden', type !== 'watch_video');
-        }
-
-        async function handleAdminLogin() {
-            const email = document.getElementById('admin-email').value;
-            const password = document.getElementById('admin-password').value;
+        try {
+            document.getElementById('login-btn-text').textContent = "Signing In...";
+            document.getElementById('login-spinner').classList.remove('hidden');
             
-            if (!email || !password) {
-                return showAlert("Please enter both email and password.");
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            if (!ADMIN_UIDS.includes(userCredential.user.uid)) {
+                await auth.signOut();
+                showAlert("You are not authorized to access this panel.");
             }
-
-            try {
-                document.getElementById('login-btn-text').textContent = "Signing In...";
-                document.getElementById('login-spinner').classList.remove('hidden');
-                
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                if (!ADMIN_UIDS.includes(userCredential.user.uid)) {
-                    await auth.signOut();
-                    showAlert("You are not authorized to access this panel.");
-                }
-            } catch (error) { 
-                showAlert(error.message); 
-            } finally {
-                document.getElementById('login-btn-text').textContent = "Sign In";
-                document.getElementById('login-spinner').classList.add('hidden');
-            }
+        } catch (error) { 
+            showAlert(error.message); 
+        } finally {
+            document.getElementById('login-btn-text').textContent = "Sign In";
+            document.getElementById('login-spinner').classList.add('hidden');
         }
+    }
 
-        function loadDashboardData() {
-            // Total users count
-            const usersUnsubscribe = db.collection("users").onSnapshot(snap => {
-                document.getElementById('total-users').textContent = snap.size;
+    function loadDashboardData() {
+        // Total users count
+        const usersUnsubscribe = db.collection("users").onSnapshot(snap => {
+            document.getElementById('total-users').textContent = snap.size;
+        });
+        unsubscribeCallbacks.push(usersUnsubscribe);
+
+        // Active users today
+        const today = new Date().toISOString().split('T')[0];
+        const activeUsersUnsubscribe = db.collection("users")
+            .where("lastLoginDate", "==", today)
+            .onSnapshot(snap => {
+                document.getElementById('active-users').textContent = snap.size;
             });
-            unsubscribeCallbacks.push(usersUnsubscribe);
+        unsubscribeCallbacks.push(activeUsersUnsubscribe);
 
-            // Active users today
-            const today = new Date().toISOString().split('T')[0];
-            const activeUsersUnsubscribe = db.collection("users")
-                .where("lastLoginDate", "==", today)
-                .onSnapshot(snap => {
-                    document.getElementById('active-users').textContent = snap.size;
-                });
-            unsubscribeCallbacks.push(activeUsersUnsubscribe);
-
-            // Pending withdrawals with notification
-            const pendingWithdrawalsUnsubscribe = db.collection("withdrawals")
-                .where("status", "==", "pending")
-                .onSnapshot(snap => {
-                    document.getElementById('pending-withdrawals').textContent = snap.size;
-                    document.getElementById('new-withdrawals-count').textContent = snap.size;
-                    
-                    // Show notification if there are new pending withdrawals
-                    if (snap.size > 0) {
-                        showNotification('withdrawals', snap.size);
-                    }
-                });
-            unsubscribeCallbacks.push(pendingWithdrawalsUnsubscribe);
-
-            // Total earnings (sum of all completed withdrawals)
-            const earningsUnsubscribe = db.collection("withdrawals")
-                .where("status", "==", "approved")
-                .onSnapshot(snap => {
-                    let total = 0;
-                    snap.forEach(doc => {
-                        total += doc.data().amount || 0;
-                    });
-                    document.getElementById('total-earnings').textContent = total;
-                });
-            unsubscribeCallbacks.push(earningsUnsubscribe);
-
-            // Recent withdrawals
-            const recentWithdrawalsUnsubscribe = db.collection("withdrawals")
-                .orderBy("requestedAt", "desc")
-                .limit(5)
-                .onSnapshot(snap => {
-                    const tbody = document.getElementById('recent-withdrawals');
-                    tbody.innerHTML = '';
-                    snap.forEach(doc => {
-                        const data = doc.data();
-                        tbody.innerHTML += `
-                            <tr>
-                                <td class="py-2">${data.userName || 'N/A'}</td>
-                                <td class="py-2">${data.amount} coins</td>
-                                <td class="py-2"><span class="badge ${getStatusClass(data.status)}">${data.status}</span></td>
-                            </tr>
-                        `;
-                    });
-                });
-            unsubscribeCallbacks.push(recentWithdrawalsUnsubscribe);
-        }
-
-        function getStatusClass(status) {
-            switch(status) {
-                case 'approved': return 'badge-success';
-                case 'pending': return 'badge-warning';
-                case 'rejected': return 'badge-danger';
-                default: return 'badge-info';
-            }
-        }
-
-        function showNotification(type, count) {
-            const notificationElement = document.getElementById(`${type}-notification`);
-            const headerNotification = document.getElementById('header-notification');
-            
-            if (notificationElement) {
-                notificationElement.classList.remove('hidden');
-            }
-            
-            if (count > 0) {
-                headerNotification.classList.remove('hidden');
-                headerNotification.innerHTML = `<span class="badge badge-info">${count} new</span>`;
+        // Pending withdrawals with notification
+        const pendingWithdrawalsUnsubscribe = db.collection("withdrawals")
+            .where("status", "==", "pending")
+            .onSnapshot(snap => {
+                document.getElementById('pending-withdrawals').textContent = snap.size;
+                document.getElementById('new-withdrawals-count').textContent = snap.size;
                 
-                // Update page title with notification count
-                if (count > 0 && !document.title.includes('(')) {
-                    document.title = `(${count}) ${document.title}`;
+                // Show notification if there are new pending withdrawals
+                if (snap.size > 0) {
+                    showNotification('withdrawals', snap.size);
                 }
-            }
-        }
+            });
+        unsubscribeCallbacks.push(pendingWithdrawalsUnsubscribe);
 
-        function hideNotification(type) {
-            const notificationElement = document.getElementById(`${type}-notification`);
-            const headerNotification = document.getElementById('header-notification');
-            
-            if (notificationElement) {
-                notificationElement.classList.add('hidden');
-            }
-            
-            headerNotification.classList.add('hidden');
-            document.title = document.title.replace(/\(\d+\)\s*/, '');
-        }
+        // Total earnings (sum of all completed withdrawals)
+        const earningsUnsubscribe = db.collection("withdrawals")
+            .where("status", "==", "approved")
+            .onSnapshot(snap => {
+                let total = 0;
+                snap.forEach(doc => {
+                    total += doc.data().amount || 0;
+                });
+                document.getElementById('total-earnings').textContent = total;
+            });
+        unsubscribeCallbacks.push(earningsUnsubscribe);
 
-        function loadUsers() {
-            const usersTableBody = document.getElementById('users-table-body');
-            const usersQuery = db.collection("users").orderBy("createdAt", "desc");
-            
-            const usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
-                allUsers = [];
-                usersTableBody.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    usersTableBody.innerHTML = `
+        // Recent withdrawals
+        const recentWithdrawalsUnsubscribe = db.collection("withdrawals")
+            .orderBy("requestedAt", "desc")
+            .limit(5)
+            .onSnapshot(snap => {
+                const tbody = document.getElementById('recent-withdrawals');
+                tbody.innerHTML = '';
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    tbody.innerHTML += `
                         <tr>
-                            <td colspan="9" class="text-center py-4 text-gray-500">No users found</td>
+                            <td class="py-2">${data.userName || 'N/A'}</td>
+                            <td class="py-2">${data.amount} coins</td>
+                            <td class="py-2"><span class="badge ${getStatusClass(data.status)}">${data.status}</span></td>
                         </tr>
                     `;
-                    document.getElementById('users-count').textContent = 'Showing 0 users';
-                    return;
-                }
-                
-                snapshot.forEach(doc => {
-                    const user = { id: doc.id, ...doc.data() };
-                    allUsers.push(user);
                 });
-                
-                filterUsers();
-            }, (error) => {
-                console.error("Error loading users:", error);
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="9" class="text-center py-4 text-red-500">Error loading users: ${error.message}</td>
-                    </tr>
-                `;
             });
-            
-            unsubscribeCallbacks.push(usersUnsubscribe);
-        }
+        unsubscribeCallbacks.push(recentWithdrawalsUnsubscribe);
+    }
 
-        function filterUsers() {
-            const searchTerm = document.getElementById('user-search').value.toLowerCase();
-            const filterType = document.getElementById('user-filter').value;
-            const sortType = document.getElementById('user-sort').value;
+    function getStatusClass(status) {
+        switch(status) {
+            case 'approved': return 'badge-success';
+            case 'pending': return 'badge-warning';
+            case 'rejected': return 'badge-danger';
+            default: return 'badge-info';
+        }
+    }
+
+    function showNotification(type, count) {
+        const notificationElement = document.getElementById(`${type}-notification`);
+        const headerNotification = document.getElementById('header-notification');
+        
+        if (notificationElement) {
+            notificationElement.classList.remove('hidden');
+        }
+        
+        if (count > 0) {
+            headerNotification.classList.remove('hidden');
+            headerNotification.innerHTML = `<span class="badge badge-info">${count} new</span>`;
             
-            let filteredUsers = allUsers.filter(user => {
-                const name = user.telegramData?.first_name || '';
-                const username = user.telegramData?.username || '';
-                const userId = user.id || '';
-                
-                return name.toLowerCase().includes(searchTerm) || 
-                       username.toLowerCase().includes(searchTerm) || 
-                       userId.toLowerCase().includes(searchTerm);
-            });
-            
-            // Apply additional filters
-            if (filterType === 'active') {
-                filteredUsers = filteredUsers.filter(user => !user.isBlocked);
-            } else if (filterType === 'blocked') {
-                filteredUsers = filteredUsers.filter(user => user.isBlocked);
-            } else if (filterType === 'has-referrals') {
-                filteredUsers = filteredUsers.filter(user => user.referredBy);
-            } else if (filterType === 'no-referrals') {
-                filteredUsers = filteredUsers.filter(user => !user.referredBy);
-            } else if (filterType === 'referrals-high') {
-                // Sort by referrals count high to low
-                filteredUsers.sort((a, b) => {
-                    const aRefCount = a.referredBy ? 1 : 0;
-                    const bRefCount = b.referredBy ? 1 : 0;
-                    return bRefCount - aRefCount;
-                });
-            } else if (filterType === 'referrals-low') {
-                // Sort by referrals count low to high
-                filteredUsers.sort((a, b) => {
-                    const aRefCount = a.referredBy ? 1 : 0;
-                    const bRefCount = b.referredBy ? 1 : 0;
-                    return aRefCount - bRefCount;
-                });
+            // Update page title with notification count
+            if (count > 0 && !document.title.includes('(')) {
+                document.title = `(${count}) ${document.title}`;
             }
-            
-            // Apply sorting if not already sorted by referrals
-            if (!filterType.includes('referrals')) {
-                switch(sortType) {
-                    case 'newest':
-                        filteredUsers.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                        break;
-                    case 'oldest':
-                        filteredUsers.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-                        break;
-                    case 'level-high':
-                        filteredUsers.sort((a, b) => (b.level || 1) - (a.level || 1));
-                        break;
-                    case 'level-low':
-                        filteredUsers.sort((a, b) => (a.level || 1) - (b.level || 1));
-                        break;
-                    case 'balance-high':
-                        filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
-                        break;
-                    case 'balance-low':
-                        filteredUsers.sort((a, b) => (a.balance || 0) - (b.balance || 0));
-                        break;
-                }
-            }
-            
-            // Display filtered users
-            const usersTableBody = document.getElementById('users-table-body');
+        }
+    }
+
+    function hideNotification(type) {
+        const notificationElement = document.getElementById(`${type}-notification`);
+        const headerNotification = document.getElementById('header-notification');
+        
+        if (notificationElement) {
+            notificationElement.classList.add('hidden');
+        }
+        
+        headerNotification.classList.add('hidden');
+        document.title = document.title.replace(/\(\d+\)\s*/, '');
+    }
+
+    function loadUsers() {
+        const usersTableBody = document.getElementById('users-table-body');
+        const usersQuery = db.collection("users").orderBy("createdAt", "desc");
+        
+        const usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
+            allUsers = [];
             usersTableBody.innerHTML = '';
             
-            if (filteredUsers.length === 0) {
+            if (snapshot.empty) {
                 usersTableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-gray-500">No users match your search criteria</td>
+                        <td colspan="9" class="text-center py-4 text-gray-500">No users found</td>
                     </tr>
                 `;
-            } else {
-                filteredUsers.forEach(user => {
-                    const joinedDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
-                    const referralsCount = user.referredBy ? 1 : 0;
-                    const username = user.telegramData?.username ? '@' + user.telegramData.username : 'N/A';
-                    const name = user.telegramData?.first_name || 'N/A';
-                    
-                    const row = `
-                        <tr class="hover:bg-gray-50">
-                            <td class="font-mono text-xs py-3">${user.id}</td>
-                            <td class="py-3">${name}</td>
-                            <td class="py-3">${username}</td>
-                            <td class="py-3">${user.balance || 0}</td>
-                            <td class="py-3">${user.level || 1}</td>
-                            <td class="py-3">${referralsCount}</td>
-                            <td class="py-3"><span class="badge ${user.isBlocked ? 'badge-danger' : 'badge-success'}">${user.isBlocked ? 'Blocked' : 'Active'}</span></td>
-                            <td class="py-3">${joinedDate}</td>
-                            <td class="py-3 space-x-2">
-                                <button class="btn btn-primary text-xs" onclick="editUser('${user.id}')">Edit</button>
-                                <button class="btn ${user.isBlocked ? 'btn-success' : 'btn-danger'} text-xs" onclick="toggleBlockUser('${user.id}', ${user.isBlocked || false})">${user.isBlocked ? 'Unblock' : 'Block'}</button>
-                            </td>
-                        </tr>
-                    `;
-                    usersTableBody.innerHTML += row;
-                });
+                document.getElementById('users-count').textContent = 'Showing 0 users';
+                return;
             }
             
-            document.getElementById('users-count').textContent = `Showing ${filteredUsers.length} users`;
+            snapshot.forEach(doc => {
+                const user = { id: doc.id, ...doc.data() };
+                allUsers.push(user);
+            });
+            
+            filterUsers();
+        }, (error) => {
+            console.error("Error loading users:", error);
+            usersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-red-500">Error loading users: ${error.message}</td>
+                </tr>
+            `;
+        });
+        
+        unsubscribeCallbacks.push(usersUnsubscribe);
+    }
+
+    function filterUsers() {
+        const searchTerm = document.getElementById('user-search').value.toLowerCase();
+        const filterType = document.getElementById('user-filter').value;
+        const sortType = document.getElementById('user-sort').value;
+        
+        let filteredUsers = allUsers.filter(user => {
+            const name = user.telegramData?.first_name || '';
+            const username = user.telegramData?.username || '';
+            const userId = user.id || '';
+            
+            return name.toLowerCase().includes(searchTerm) || 
+                   username.toLowerCase().includes(searchTerm) || 
+                   userId.toLowerCase().includes(searchTerm);
+        });
+        
+        // Apply additional filters
+        if (filterType === 'active') {
+            filteredUsers = filteredUsers.filter(user => !user.isBlocked);
+        } else if (filterType === 'blocked') {
+            filteredUsers = filteredUsers.filter(user => user.isBlocked);
+        } else if (filterType === 'has-referrals') {
+            filteredUsers = filteredUsers.filter(user => user.referredBy);
+        } else if (filterType === 'no-referrals') {
+            filteredUsers = filteredUsers.filter(user => !user.referredBy);
+        } else if (filterType === 'referrals-high') {
+            // Sort by referrals count high to low
+            filteredUsers.sort((a, b) => {
+                const aRefCount = a.referredBy ? 1 : 0;
+                const bRefCount = b.referredBy ? 1 : 0;
+                return bRefCount - aRefCount;
+            });
+        } else if (filterType === 'referrals-low') {
+            // Sort by referrals count low to high
+            filteredUsers.sort((a, b) => {
+                const aRefCount = a.referredBy ? 1 : 0;
+                const bRefCount = b.referredBy ? 1 : 0;
+                return aRefCount - bRefCount;
+            });
+        }
+        
+        // Apply sorting if not already sorted by referrals
+        if (!filterType.includes('referrals')) {
+            switch(sortType) {
+                case 'newest':
+                    filteredUsers.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    break;
+                case 'oldest':
+                    filteredUsers.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                    break;
+                case 'level-high':
+                    filteredUsers.sort((a, b) => (b.level || 1) - (a.level || 1));
+                    break;
+                case 'level-low':
+                    filteredUsers.sort((a, b) => (a.level || 1) - (b.level || 1));
+                    break;
+                case 'balance-high':
+                    filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+                    break;
+                case 'balance-low':
+                    filteredUsers.sort((a, b) => (a.balance || 0) - (b.balance || 0));
+                    break;
+            }
+        }
+        
+        // Display filtered users
+        const usersTableBody = document.getElementById('users-table-body');
+        usersTableBody.innerHTML = '';
+        
+        if (filteredUsers.length === 0) {
+            usersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-gray-500">No users match your search criteria</td>
+                </tr>
+            `;
+        } else {
+            filteredUsers.forEach(user => {
+                const joinedDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+                const referralsCount = user.referredBy ? 1 : 0;
+                const username = user.telegramData?.username ? '@' + user.telegramData.username : 'N/A';
+                const name = user.telegramData?.first_name || 'N/A';
+                
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="font-mono text-xs py-3">${user.id}</td>
+                        <td class="py-3">${name}</td>
+                        <td class="py-3">${username}</td>
+                        <td class="py-3">${user.balance || 0}</td>
+                        <td class="py-3">${user.level || 1}</td>
+                        <td class="py-3">${referralsCount}</td>
+                        <td class="py-3"><span class="badge ${user.isBlocked ? 'badge-danger' : 'badge-success'}">${user.isBlocked ? 'Blocked' : 'Active'}</span></td>
+                        <td class="py-3">${joinedDate}</td>
+                        <td class="py-3 space-x-2">
+                            <button class="btn btn-primary text-xs" onclick="editUser('${user.id}')">Edit</button>
+                            <button class="btn ${user.isBlocked ? 'btn-success' : 'btn-danger'} text-xs" onclick="toggleBlockUser('${user.id}', ${user.isBlocked || false})">${user.isBlocked ? 'Unblock' : 'Block'}</button>
+                        </td>
+                    </tr>
+                `;
+                usersTableBody.innerHTML += row;
+            });
+        }
+        
+        document.getElementById('users-count').textContent = `Showing ${filteredUsers.length} users`;
+    }
+
+    window.editUser = function(userId) {
+        currentEditingUserId = userId;
+        const userRef = db.collection("users").doc(userId);
+        userRef.get().then(docSnap => {
+            if (docSnap.exists()) {
+                const user = docSnap.data();
+                document.getElementById('edit-user-name').value = user.telegramData?.first_name || '';
+                document.getElementById('edit-user-username').value = user.telegramData?.username || '';
+                document.getElementById('edit-user-id').value = userId;
+                document.getElementById('edit-user-balance').value = user.balance || 0;
+                document.getElementById('edit-user-level').value = user.level || 1;
+                document.getElementById('edit-user-referral-code').value = user.referralCode || '';
+                document.getElementById('edit-user-referred-by').value = user.referredBy || '';
+                document.getElementById('edit-user-blocked').checked = user.isBlocked || false;
+                document.getElementById('user-edit-modal').classList.remove('hidden');
+            }
+        }).catch(error => {
+            showAlert("Error loading user: " + error.message);
+        });
+    };
+
+    window.closeEditModal = function() {
+        document.getElementById('user-edit-modal').classList.add('hidden');
+        currentEditingUserId = null;
+    };
+
+    async function saveUserEdit() {
+        if (!currentEditingUserId) return;
+
+        const name = document.getElementById('edit-user-name').value;
+        const username = document.getElementById('edit-user-username').value;
+        const balance = parseInt(document.getElementById('edit-user-balance').value);
+        const level = parseInt(document.getElementById('edit-user-level').value);
+        const referralCode = document.getElementById('edit-user-referral-code').value;
+        const referredBy = document.getElementById('edit-user-referred-by').value;
+        const isBlocked = document.getElementById('edit-user-blocked').checked;
+
+        if (isNaN(balance) || isNaN(level)) {
+            return showAlert("Please enter valid numbers for balance and level.");
         }
 
-        window.editUser = function(userId) {
-            currentEditingUserId = userId;
-            const userRef = db.collection("users").doc(userId);
-            userRef.get().then(docSnap => {
-                if (docSnap.exists()) {
-                    const user = docSnap.data();
-                    document.getElementById('edit-user-name').value = user.telegramData?.first_name || '';
-                    document.getElementById('edit-user-username').value = user.telegramData?.username || '';
-                    document.getElementById('edit-user-id').value = userId;
-                    document.getElementById('edit-user-balance').value = user.balance || 0;
-                    document.getElementById('edit-user-level').value = user.level || 1;
-                    document.getElementById('edit-user-referral-code').value = user.referralCode || '';
-                    document.getElementById('edit-user-referred-by').value = user.referredBy || '';
-                    document.getElementById('edit-user-blocked').checked = user.isBlocked || false;
-                    document.getElementById('user-edit-modal').classList.remove('hidden');
-                }
-            }).catch(error => {
-                showAlert("Error loading user: " + error.message);
-            });
-        };
-
-        window.closeEditModal = function() {
-            document.getElementById('user-edit-modal').classList.add('hidden');
-            currentEditingUserId = null;
-        };
-
-        async function saveUserEdit() {
-            if (!currentEditingUserId) return;
-
-            const name = document.getElementById('edit-user-name').value;
-            const username = document.getElementById('edit-user-username').value;
-            const balance = parseInt(document.getElementById('edit-user-balance').value);
-            const level = parseInt(document.getElementById('edit-user-level').value);
-            const referralCode = document.getElementById('edit-user-referral-code').value;
-            const referredBy = document.getElementById('edit-user-referred-by').value;
-            const isBlocked = document.getElementById('edit-user-blocked').checked;
-
-            if (isNaN(balance) || isNaN(level)) {
-                return showAlert("Please enter valid numbers for balance and level.");
+        try {
+            const userRef = db.collection("users").doc(currentEditingUserId);
+            const userDoc = await userRef.get();
+            
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                const telegramData = userData.telegramData || {};
+                
+                // Update telegram data
+                telegramData.first_name = name;
+                telegramData.username = username;
+                
+                await userRef.update({
+                    balance: balance,
+                    level: level,
+                    referralCode: referralCode,
+                    referredBy: referredBy,
+                    isBlocked: isBlocked,
+                    telegramData: telegramData
+                });
+                
+                showAlert("User updated successfully!");
+                closeEditModal();
             }
+        } catch (error) {
+            showAlert("Error updating user: " + error.message);
+        }
+    }
 
+    window.toggleBlockUser = function(userId, isBlocked) {
+        const action = isBlocked ? 'unblock' : 'block';
+        showConfirm(`Are you sure you want to ${action} this user?`, async () => {
             try {
-                const userRef = db.collection("users").doc(currentEditingUserId);
-                const userDoc = await userRef.get();
-                
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    const telegramData = userData.telegramData || {};
-                    
-                    // Update telegram data
-                    telegramData.first_name = name;
-                    telegramData.username = username;
-                    
-                    await userRef.update({
-                        balance: balance,
-                        level: level,
-                        referralCode: referralCode,
-                        referredBy: referredBy,
-                        isBlocked: isBlocked,
-                        telegramData: telegramData
-                    });
-                    
-                    showAlert("User updated successfully!");
-                    closeEditModal();
-                }
-            } catch (error) {
-                showAlert("Error updating user: " + error.message);
+                await db.collection("users").doc(userId).update({ isBlocked: !isBlocked });
+                showAlert(`User ${action}ed successfully!`);
+            } catch (error) { 
+                showAlert("Error: " + error.message); 
             }
-        }
+        });
+    };
 
-        window.toggleBlockUser = function(userId, isBlocked) {
-            const action = isBlocked ? 'unblock' : 'block';
-            showConfirm(`Are you sure you want to ${action} this user?`, async () => {
-                try {
-                    await db.collection("users").doc(userId).update({ isBlocked: !isBlocked });
-                    showAlert(`User ${action}ed successfully!`);
-                } catch (error) { 
-                    showAlert("Error: " + error.message); 
-                }
-            });
-        };
-
-        function loadWithdrawals() {
-            const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
-            const withdrawalsQuery = db.collection("withdrawals").orderBy("requestedAt", "desc");
-            
-            const withdrawalsUnsubscribe = withdrawalsQuery.onSnapshot((snapshot) => {
-                allWithdrawals = [];
-                withdrawalsTableBody.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    withdrawalsTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="9" class="text-center py-4 text-gray-500">No withdrawal requests found</td>
-                        </tr>
-                    `;
-                    document.getElementById('withdrawals-count').textContent = 'Showing 0 withdrawals';
-                    return;
-                }
-                
-                snapshot.forEach(docSnap => {
-                    const request = { id: docSnap.id, ...docSnap.data() };
-                    allWithdrawals.push(request);
-                });
-                
-                filterWithdrawals('all');
-            }, (error) => {
-                console.error("Error loading withdrawals:", error);
-                withdrawalsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="9" class="text-center py-4 text-red-500">Error loading withdrawals: ${error.message}</td>
-                    </tr>
-                `;
-            });
-            
-            unsubscribeCallbacks.push(withdrawalsUnsubscribe);
-        }
-
-        window.filterWithdrawals = function(status) {
-            const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
-            let filteredWithdrawals = allWithdrawals;
-            
-            if (status !== 'all') {
-                filteredWithdrawals = allWithdrawals.filter(w => w.status === status);
-            }
-            
+    function loadWithdrawals() {
+        const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
+        const withdrawalsQuery = db.collection("withdrawals").orderBy("requestedAt", "desc");
+        
+        const withdrawalsUnsubscribe = withdrawalsQuery.onSnapshot((snapshot) => {
+            allWithdrawals = [];
             withdrawalsTableBody.innerHTML = '';
             
-            if (filteredWithdrawals.length === 0) {
+            if (snapshot.empty) {
                 withdrawalsTableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-gray-500">No ${status} withdrawal requests found</td>
+                        <td colspan="9" class="text-center py-4 text-gray-500">No withdrawal requests found</td>
                     </tr>
                 `;
-            } else {
-                filteredWithdrawals.forEach(request => {
-                    const requestedDate = request.requestedAt?.toDate().toLocaleString() || 'N/A';
-                    const row = `
-                        <tr class="hover:bg-gray-50">
-                            <td class="font-mono text-xs py-3">${request.id.substring(0, 8)}...</td>
-                            <td class="py-3">${request.userName || 'N/A'}</td>
-                            <td class="font-mono text-xs py-3">${request.userId}</td>
-                            <td class="py-3">${request.amount} coins</td>
-                            <td class="py-3">${request.method}</td>
-                            <td class="py-3">${request.paymentDetail || 'N/A'}</td>
-                            <td class="py-3">${requestedDate}</td>
-                            <td class="py-3"><span class="badge ${getStatusClass(request.status)}">${request.status}</span></td>
-                            <td class="py-3 space-x-2">
-                                ${request.status === 'pending' ? `
-                                    <button class="btn btn-success text-xs" onclick="handleWithdrawal('${request.id}', 'approved')">Approve</button>
-                                    <button class="btn btn-danger text-xs" onclick="handleWithdrawal('${request.id}', 'rejected')">Reject</button>
-                                ` : 'Completed'}
-                            </td>
-                        </tr>
-                    `;
-                    withdrawalsTableBody.innerHTML += row;
-                });
+                document.getElementById('withdrawals-count').textContent = 'Showing 0 withdrawals';
+                return;
             }
             
-            document.getElementById('withdrawals-count').textContent = `Showing ${filteredWithdrawals.length} withdrawals`;
-            
-            // Update button states
-            document.querySelectorAll('[onclick^="filterWithdrawals"]').forEach(btn => {
-                btn.classList.remove('filter-active');
+            snapshot.forEach(docSnap => {
+                const request = { id: docSnap.id, ...docSnap.data() };
+                allWithdrawals.push(request);
             });
-            event.target.classList.add('filter-active');
-        };
+            
+            filterWithdrawals('all');
+        }, (error) => {
+            console.error("Error loading withdrawals:", error);
+            withdrawalsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-red-500">Error loading withdrawals: ${error.message}</td>
+                </tr>
+            `;
+        });
+        
+        unsubscribeCallbacks.push(withdrawalsUnsubscribe);
+    }
 
-        window.handleWithdrawal = function(requestId, newStatus) {
-            showConfirm(`Are you sure you want to ${newStatus} this withdrawal request?`, async () => {
-                const requestRef = db.collection("withdrawals").doc(requestId);
-                try {
-                    // Get the request data first
-                    const requestDoc = await requestRef.get();
-                    if (!requestDoc.exists) {
-                        throw new Error("Withdrawal request not found");
-                    }
+    window.filterWithdrawals = function(status) {
+        const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
+        let filteredWithdrawals = allWithdrawals;
+        
+        if (status !== 'all') {
+            filteredWithdrawals = allWithdrawals.filter(w => w.status === status);
+        }
+        
+        withdrawalsTableBody.innerHTML = '';
+        
+        if (filteredWithdrawals.length === 0) {
+            withdrawalsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-gray-500">No ${status} withdrawal requests found</td>
+                </tr>
+            `;
+        } else {
+            filteredWithdrawals.forEach(request => {
+                const requestedDate = request.requestedAt?.toDate().toLocaleString() || 'N/A';
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="font-mono text-xs py-3">${request.id.substring(0, 8)}...</td>
+                        <td class="py-3">${request.userName || 'N/A'}</td>
+                        <td class="font-mono text-xs py-3">${request.userId}</td>
+                        <td class="py-3">${request.amount} coins</td>
+                        <td class="py-3">${request.method}</td>
+                        <td class="py-3">${request.paymentDetail || 'N/A'}</td>
+                        <td class="py-3">${requestedDate}</td>
+                        <td class="py-3"><span class="badge ${getStatusClass(request.status)}">${request.status}</span></td>
+                        <td class="py-3 space-x-2">
+                            ${request.status === 'pending' ? `
+                                <button class="btn btn-success text-xs" onclick="handleWithdrawal('${request.id}', 'approved')">Approve</button>
+                                <button class="btn btn-danger text-xs" onclick="handleWithdrawal('${request.id}', 'rejected')">Reject</button>
+                            ` : 'Completed'}
+                        </td>
+                    </tr>
+                `;
+                withdrawalsTableBody.innerHTML += row;
+            });
+        }
+        
+        document.getElementById('withdrawals-count').textContent = `Showing ${filteredWithdrawals.length} withdrawals`;
+        
+        // Update button states
+        document.querySelectorAll('[onclick^="filterWithdrawals"]').forEach(btn => {
+            btn.classList.remove('filter-active');
+        });
+        event.target.classList.add('filter-active');
+    };
+
+    window.handleWithdrawal = function(requestId, newStatus) {
+        showConfirm(`Are you sure you want to ${newStatus} this withdrawal request?`, async () => {
+            const requestRef = db.collection("withdrawals").doc(requestId);
+            try {
+                // Get the request data first
+                const requestDoc = await requestRef.get();
+                if (!requestDoc.exists) {
+                    throw new Error("Withdrawal request not found");
+                }
+                
+                const requestData = requestDoc.data();
+                
+                if (newStatus === 'rejected') {
+                    // Return coins to user if rejected
+                    const userRef = db.collection("users").doc(requestData.userId);
+                    const userDoc = await userRef.get();
                     
-                    const requestData = requestDoc.data();
-                    
-                    if (newStatus === 'rejected') {
-                        // Return coins to user if rejected
-                        const userRef = db.collection("users").doc(requestData.userId);
-                        const userDoc = await userRef.get();
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        const currentBalance = userData.balance || 0;
+                        await userRef.update({ 
+                            balance: currentBalance + requestData.amount 
+                        });
                         
-                        if (userDoc.exists) {
-                            const userData = userDoc.data();
-                            const currentBalance = userData.balance || 0;
-                            await userRef.update({ 
-                                balance: currentBalance + requestData.amount 
-                            });
-                            
-                            // Send notification to user
-                            await sendTelegramMessage(BOT_TOKEN, requestData.userId, 
-                                `❌ Your withdrawal request of ${requestData.amount} coins has been rejected. ` +
-                                `Your balance has been refunded.`
-                            );
-                        }
-                    } else if (newStatus === 'approved') {
-                        // Send success notification to user
+                        // Send notification to user
                         await sendTelegramMessage(BOT_TOKEN, requestData.userId, 
-                            `✅ Your withdrawal request of ${requestData.amount} coins has been approved! ` +
-                            `Payment will be processed shortly.`
+                            `❌ Your withdrawal request of ${requestData.amount} coins has been rejected. ` +
+                            `Your balance has been refunded.`
                         );
                     }
-                    
-                    // Update withdrawal status
-                    await requestRef.update({ status: newStatus });
-                    showAlert(`Withdrawal request ${newStatus} successfully!`);
-                } catch (error) { 
-                    showAlert("Error: " + error.message); 
+                } else if (newStatus === 'approved') {
+                    // Send success notification to user
+                    await sendTelegramMessage(BOT_TOKEN, requestData.userId, 
+                        `✅ Your withdrawal request of ${requestData.amount} coins has been approved! ` +
+                        `Payment will be processed shortly.`
+                    );
                 }
-            });
-        };
-
-        // Telegram message sending function
-        async function sendTelegramMessage(botToken, chatId, message) {
-            try {
-                const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: message,
-                        parse_mode: 'HTML'
-                    })
-                });
                 
-                const data = await response.json();
-                return data.ok;
-            } catch (error) {
-                console.error("Error sending Telegram message:", error);
-                return false;
+                // Update withdrawal status
+                await requestRef.update({ status: newStatus });
+                showAlert(`Withdrawal request ${newStatus} successfully!`);
+            } catch (error) { 
+                showAlert("Error: " + error.message); 
             }
-        }
+        });
+    };
 
-        function loadTasks() {
-            const tasksTableBody = document.getElementById('tasks-table-body');
-            const tasksQuery = db.collection("tasks").orderBy("order", "asc");
+    // Telegram message sending function
+    async function sendTelegramMessage(botToken, chatId, message) {
+        try {
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            });
             
-            const tasksUnsubscribe = tasksQuery.onSnapshot((snapshot) => {
-                allTasks = [];
-                tasksTableBody.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    tasksTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-gray-500">No tasks found</td>
-                        </tr>
-                    `;
-                    document.getElementById('total-tasks-count').textContent = '0';
-                    document.getElementById('active-tasks-count').textContent = '0';
-                    return;
-                }
-                
-                let totalTasks = 0;
-                let activeTasks = 0;
-                let completedToday = 0;
-                
-                snapshot.forEach(doc => {
-                    const task = { id: doc.id, ...doc.data() };
-                    allTasks.push(task);
-                    totalTasks++;
-                    
-                    if (task.enabled) {
-                        activeTasks++;
-                    }
-                    
-                    // Simple logic for completed today (in real app, you'd track this properly)
-                    if (task.current_count > 0) {
-                        completedToday += task.current_count;
-                    }
-                });
-                
-                document.getElementById('total-tasks-count').textContent = totalTasks;
-                document.getElementById('active-tasks-count').textContent = activeTasks;
-                document.getElementById('completed-tasks-count').textContent = completedToday;
-                
-                // Display tasks
-                allTasks.forEach(task => {
-                    const status = task.current_count >= task.global_limit ? 
-                        'Mission Complete' : (task.enabled ? 'Active' : 'Disabled');
-                    
-                    const statusClass = task.current_count >= task.global_limit ? 
-                        'badge-success' : (task.enabled ? 'badge-info' : 'badge-warning');
-                    
-                    const row = `
-                        <tr class="hover:bg-gray-50">
-                            <td class="py-3">${task.title}</td>
-                            <td class="py-3">${task.type.replace('_', ' ')}</td>
-                            <td class="py-3">${task.reward} coins</td>
-                            <td class="py-3">${task.current_count || 0}</td>
-                            <td class="py-3">${task.global_limit}</td>
-                            <td class="py-3"><span class="badge ${statusClass}">${status}</span></td>
-                            <td class="py-3 space-x-2">
-                                <button class="btn btn-primary text-xs" onclick="editTask('${task.id}')">Edit</button>
-                                <button class="btn ${task.enabled ? 'btn-warning' : 'btn-success'} text-xs" onclick="toggleTask('${task.id}', ${task.enabled || false})">${task.enabled ? 'Disable' : 'Enable'}</button>
-                                <button class="btn btn-danger text-xs" onclick="deleteTask('${task.id}')">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                    tasksTableBody.innerHTML += row;
-                });
-            }, (error) {
-                console.error("Error loading tasks:", error);
+            const data = await response.json();
+            return data.ok;
+        } catch (error) {
+            console.error("Error sending Telegram message:", error);
+            return false;
+        }
+    }
+
+    function loadTasks() {
+        const tasksTableBody = document.getElementById('tasks-table-body');
+        const tasksQuery = db.collection("tasks").orderBy("order", "asc");
+        
+        const tasksUnsubscribe = tasksQuery.onSnapshot((snapshot) => {
+            allTasks = [];
+            tasksTableBody.innerHTML = '';
+            
+            if (snapshot.empty) {
                 tasksTableBody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center py-4 text-red-500">Error loading tasks: ${error.message}</td>
+                        <td colspan="7" class="text-center py-4 text-gray-500">No tasks found</td>
                     </tr>
                 `;
+                document.getElementById('total-tasks-count').textContent = '0';
+                document.getElementById('active-tasks-count').textContent = '0';
+                return;
+            }
+            
+            let totalTasks = 0;
+            let activeTasks = 0;
+            let completedToday = 0;
+            
+            snapshot.forEach(doc => {
+                const task = { id: doc.id, ...doc.data() };
+                allTasks.push(task);
+                totalTasks++;
+                
+                if (task.enabled) {
+                    activeTasks++;
+                }
+                
+                // Simple logic for completed today (in real app, you'd track this properly)
+                if (task.current_count > 0) {
+                    completedToday += task.current_count;
+                }
             });
             
-            unsubscribeCallbacks.push(tasksUnsubscribe);
-        }
-
-        window.showCreateTaskModal = function() {
-            document.getElementById('create-task-modal').classList.remove('hidden');
-            // Reset form
-            document.getElementById('task-title').value = '';
-            document.getElementById('task-description').value = '';
-            document.getElementById('task-type').value = 'watch_ads';
-            document.getElementById('task-reward').value = '';
-            document.getElementById('task-emoji').value = '';
-            document.getElementById('task-group-link').value = '';
-            document.getElementById('task-video-url').value = '';
-            document.getElementById('task-timer-seconds').value = '5';
-            document.getElementById('task-video-seconds').value = '30';
-            document.getElementById('task-global-limit').value = '1000';
-            document.getElementById('task-order').value = '1';
-            document.getElementById('task-enabled').checked = true;
+            document.getElementById('total-tasks-count').textContent = totalTasks;
+            document.getElementById('active-tasks-count').textContent = activeTasks;
+            document.getElementById('completed-tasks-count').textContent = completedToday;
             
-            handleTaskTypeChange();
+            // Display tasks
+            allTasks.forEach(task => {
+                const status = task.current_count >= task.global_limit ? 
+                    'Mission Complete' : (task.enabled ? 'Active' : 'Disabled');
+                
+                const statusClass = task.current_count >= task.global_limit ? 
+                    'badge-success' : (task.enabled ? 'badge-info' : 'badge-warning');
+                
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3">${task.title}</td>
+                        <td class="py-3">${task.type.replace('_', ' ')}</td>
+                        <td class="py-3">${task.reward} coins</td>
+                        <td class="py-3">${task.current_count || 0}</td>
+                        <td class="py-3">${task.global_limit}</td>
+                        <td class="py-3"><span class="badge ${statusClass}">${status}</span></td>
+                        <td class="py-3 space-x-2">
+                            <button class="btn btn-primary text-xs" onclick="editTask('${task.id}')">Edit</button>
+                            <button class="btn ${task.enabled ? 'btn-warning' : 'btn-success'} text-xs" onclick="toggleTask('${task.id}', ${task.enabled || false})">${task.enabled ? 'Disable' : 'Enable'}</button>
+                            <button class="btn btn-danger text-xs" onclick="deleteTask('${task.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tasksTableBody.innerHTML += row;
+            });
+        }, (error) => {
+            console.error("Error loading tasks:", error);
+            tasksTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-red-500">Error loading tasks: ${error.message}</td>
+                </tr>
+            `;
+        });
+        
+        unsubscribeCallbacks.push(tasksUnsubscribe);
+    }
+
+    window.showCreateTaskModal = function() {
+        document.getElementById('create-task-modal').classList.remove('hidden');
+        // Reset form
+        document.getElementById('task-title').value = '';
+        document.getElementById('task-description').value = '';
+        document.getElementById('task-type').value = 'watch_ads';
+        document.getElementById('task-reward').value = '';
+        document.getElementById('task-emoji').value = '';
+        document.getElementById('task-group-link').value = '';
+        document.getElementById('task-video-url').value = '';
+        document.getElementById('task-timer-seconds').value = '5';
+        document.getElementById('task-video-seconds').value = '30';
+        document.getElementById('task-global-limit').value = '1000';
+        document.getElementById('task-order').value = '1';
+        document.getElementById('task-enabled').checked = true;
+        
+        handleTaskTypeChange();
+    }
+
+    window.closeCreateTaskModal = function() {
+        document.getElementById('create-task-modal').classList.add('hidden');
+    }
+
+    window.createNewTask = async function() {
+        const title = document.getElementById('task-title').value;
+        const description = document.getElementById('task-description').value;
+        const type = document.getElementById('task-type').value;
+        const reward = parseInt(document.getElementById('task-reward').value);
+        const emoji = document.getElementById('task-emoji').value;
+        const groupLink = document.getElementById('task-group-link').value;
+        const videoUrl = document.getElementById('task-video-url').value;
+        const timerSeconds = parseInt(document.getElementById('task-timer-seconds').value);
+        const videoSeconds = parseInt(document.getElementById('task-video-seconds').value);
+        const globalLimit = parseInt(document.getElementById('task-global-limit').value);
+        const order = parseInt(document.getElementById('task-order').value);
+        const enabled = document.getElementById('task-enabled').checked;
+
+        if (!title || !reward || !globalLimit || !order) {
+            return showAlert("Please fill in all required fields.");
         }
 
-        window.closeCreateTaskModal = function() {
-            document.getElementById('create-task-modal').classList.add('hidden');
-        }
+        try {
+            const taskData = {
+                title,
+                description,
+                type,
+                reward,
+                emoji: emoji || "✅",
+                global_limit: globalLimit,
+                current_count: 0,
+                order,
+                enabled,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
+            };
 
-        window.createNewTask = async function() {
-            const title = document.getElementById('task-title').value;
-            const description = document.getElementById('task-description').value;
-            const type = document.getElementById('task-type').value;
-            const reward = parseInt(document.getElementById('task-reward').value);
-            const emoji = document.getElementById('task-emoji').value;
-            const groupLink = document.getElementById('task-group-link').value;
-            const videoUrl = document.getElementById('task-video-url').value;
-            const timerSeconds = parseInt(document.getElementById('task-timer-seconds').value);
-            const videoSeconds = parseInt(document.getElementById('task-video-seconds').value);
-            const globalLimit = parseInt(document.getElementById('task-global-limit').value);
-            const order = parseInt(document.getElementById('task-order').value);
-            const enabled = document.getElementById('task-enabled').checked;
-
-            if (!title || !reward || !globalLimit || !order) {
-                return showAlert("Please fill in all required fields.");
+            // Add optional fields based on task type
+            if (type === 'group_join' && groupLink) {
+                taskData.group_link = groupLink;
+                taskData.timer_seconds = timerSeconds || 5;
             }
 
-            try {
-                const taskData = {
-                    title,
-                    description,
-                    type,
-                    reward,
-                    emoji: emoji || "✅",
-                    global_limit: globalLimit,
-                    current_count: 0,
-                    order,
-                    enabled,
-                    created_at: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                // Add optional fields based on task type
-                if (type === 'group_join' && groupLink) {
-                    taskData.group_link = groupLink;
-                    taskData.timer_seconds = timerSeconds || 5;
-                }
-
-                if (type === 'watch_video' && videoUrl) {
-                    taskData.video_url = videoUrl;
-                    taskData.video_seconds = videoSeconds || 30;
-                }
-
-                await db.collection("tasks").add(taskData);
-                showAlert("Task created successfully!");
-                closeCreateTaskModal();
-            } catch (error) {
-                showAlert("Error creating task: " + error.message);
+            if (type === 'watch_video' && videoUrl) {
+                taskData.video_url = videoUrl;
+                taskData.video_seconds = videoSeconds || 30;
             }
-        }
 
-        window.editTask = function(taskId) {
-            currentEditingTaskId = taskId;
-            const task = allTasks.find(t => t.id === taskId);
+            await db.collection("tasks").add(taskData);
+            showAlert("Task created successfully!");
+            closeCreateTaskModal();
+        } catch (error) {
+            showAlert("Error creating task: " + error.message);
+        }
+    }
+
+    window.editTask = function(taskId) {
+        currentEditingTaskId = taskId;
+        const task = allTasks.find(t => t.id === taskId);
+        
+        if (task) {
+            document.getElementById('edit-task-id').value = taskId;
+            document.getElementById('edit-task-title').value = task.title;
+            document.getElementById('edit-task-description').value = task.description || '';
+            document.getElementById('edit-task-type').value = task.type;
+            document.getElementById('edit-task-reward').value = task.reward;
+            document.getElementById('edit-task-emoji').value = task.emoji || '';
+            document.getElementById('edit-task-group-link').value = task.group_link || '';
+            document.getElementById('edit-task-video-url').value = task.video_url || '';
+            document.getElementById('edit-task-timer-seconds').value = task.timer_seconds || 5;
+            document.getElementById('edit-task-video-seconds').value = task.video_seconds || 30;
+            document.getElementById('edit-task-global-limit').value = task.global_limit;
+            document.getElementById('edit-task-current-count').value = task.current_count || 0;
+            document.getElementById('edit-task-order').value = task.order;
+            document.getElementById('edit-task-enabled').checked = task.enabled;
             
-            if (task) {
-                document.getElementById('edit-task-id').value = taskId;
-                document.getElementById('edit-task-title').value = task.title;
-                document.getElementById('edit-task-description').value = task.description || '';
-                document.getElementById('edit-task-type').value = task.type;
-                document.getElementById('edit-task-reward').value = task.reward;
-                document.getElementById('edit-task-emoji').value = task.emoji || '';
-                document.getElementById('edit-task-group-link').value = task.group_link || '';
-                document.getElementById('edit-task-video-url').value = task.video_url || '';
-                document.getElementById('edit-task-timer-seconds').value = task.timer_seconds || 5;
-                document.getElementById('edit-task-video-seconds').value = task.video_seconds || 30;
-                document.getElementById('edit-task-global-limit').value = task.global_limit;
-                document.getElementById('edit-task-current-count').value = task.current_count || 0;
-                document.getElementById('edit-task-order').value = task.order;
-                document.getElementById('edit-task-enabled').checked = task.enabled;
-                
-                handleEditTaskTypeChange();
-                document.getElementById('edit-task-modal').classList.remove('hidden');
-            }
+            handleEditTaskTypeChange();
+            document.getElementById('edit-task-modal').classList.remove('hidden');
+        }
+    }
+
+    window.closeEditTaskModal = function() {
+        document.getElementById('edit-task-modal').classList.add('hidden');
+        currentEditingTaskId = null;
+    }
+
+    window.updateTask = async function() {
+        if (!currentEditingTaskId) return;
+
+        const title = document.getElementById('edit-task-title').value;
+        const description = document.getElementById('edit-task-description').value;
+        const reward = parseInt(document.getElementById('edit-task-reward').value);
+        const emoji = document.getElementById('edit-task-emoji').value;
+        const groupLink = document.getElementById('edit-task-group-link').value;
+        const videoUrl = document.getElementById('edit-task-video-url').value;
+        const timerSeconds = parseInt(document.getElementById('edit-task-timer-seconds').value);
+        const videoSeconds = parseInt(document.getElementById('edit-task-video-seconds').value);
+        const globalLimit = parseInt(document.getElementById('edit-task-global-limit').value);
+        const order = parseInt(document.getElementById('edit-task-order').value);
+        const enabled = document.getElementById('edit-task-enabled').checked;
+
+        if (!title || !reward || !globalLimit || !order) {
+            return showAlert("Please fill in all required fields.");
         }
 
-        window.closeEditTaskModal = function() {
-            document.getElementById('edit-task-modal').classList.add('hidden');
-            currentEditingTaskId = null;
-        }
-
-        window.updateTask = async function() {
-            if (!currentEditingTaskId) return;
-
-            const title = document.getElementById('edit-task-title').value;
-            const description = document.getElementById('edit-task-description').value;
-            const reward = parseInt(document.getElementById('edit-task-reward').value);
-            const emoji = document.getElementById('edit-task-emoji').value;
-            const groupLink = document.getElementById('edit-task-group-link').value;
-            const videoUrl = document.getElementById('edit-task-video-url').value;
-            const timerSeconds = parseInt(document.getElementById('edit-task-timer-seconds').value);
-            const videoSeconds = parseInt(document.getElementById('edit-task-video-seconds').value);
-            const globalLimit = parseInt(document.getElementById('edit-task-global-limit').value);
-            const order = parseInt(document.getElementById('edit-task-order').value);
-            const enabled = document.getElementById('edit-task-enabled').checked;
-
-            if (!title || !reward || !globalLimit || !order) {
-                return showAlert("Please fill in all required fields.");
-            }
-
-            try {
-                const taskData = {
-                    title,
-                    description,
-                    reward,
-                    emoji: emoji || "✅",
-                    global_limit: globalLimit,
-                    order,
-                    enabled
-                };
-
-                // Add optional fields based on task type
-                const type = document.getElementById('edit-task-type').value;
-                if (type === 'group_join') {
-                    taskData.group_link = groupLink;
-                    taskData.timer_seconds = timerSeconds || 5;
-                }
-
-                if (type === 'watch_video') {
-                    taskData.video_url = videoUrl;
-                    taskData.video_seconds = videoSeconds || 30;
-                }
-
-                await db.collection("tasks").doc(currentEditingTaskId).update(taskData);
-                showAlert("Task updated successfully!");
-                closeEditTaskModal();
-            } catch (error) {
-                showAlert("Error updating task: " + error.message);
-            }
-        }
-
-        window.toggleTask = function(taskId, isEnabled) {
-            const action = isEnabled ? 'disable' : 'enable';
-            showConfirm(`Are you sure you want to ${action} this task?`, async () => {
-                try {
-                    await db.collection("tasks").doc(taskId).update({ enabled: !isEnabled });
-                    showAlert(`Task ${action}d successfully!`);
-                } catch (error) { 
-                    showAlert("Error: " + error.message); 
-                }
-            });
-        }
-
-        window.deleteTask = function(taskId) {
-            showConfirm("Are you sure you want to delete this task? This action cannot be undone.", async () => {
-                try {
-                    await db.collection("tasks").doc(taskId).delete();
-                    showAlert("Task deleted successfully!");
-                } catch (error) { 
-                    showAlert("Error: " + error.message); 
-                }
-            });
-        }
-
-        async function loadTaskConfig() {
-            try {
-                const configRef = db.collection("config").doc("tasks");
-                const docSnap = await configRef.get();
-                
-                if (docSnap.exists()) {
-                    const config = docSnap.data();
-                    document.getElementById('daily-task-limit').value = config.dailyLimit || 10;
-                }
-            } catch (error) {
-                console.error("Error loading task config:", error);
-            }
-        }
-
-        async function updateTaskConfig() {
-            try {
-                const dailyLimit = parseInt(document.getElementById('daily-task-limit').value);
-                
-                await db.collection("config").doc("tasks").set({
-                    dailyLimit: dailyLimit,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                showAlert("Task configuration updated successfully!");
-            } catch (error) {
-                showAlert("Error updating task config: " + error.message);
-            }
-        }
-
-        async function loadReferralConfig() {
-            try {
-                const configRef = db.collection("config").doc("referral");
-                const docSnap = await configRef.get();
-                
-                if (docSnap.exists()) {
-                    const config = docSnap.data();
-                    document.getElementById('referrer-bonus').value = config.referrerBonus || 100;
-                    document.getElementById('referee-bonus').value = config.refereeBonus || 100;
-                    document.getElementById('referral-enabled').checked = config.enabled !== false;
-
-                    // Load referral stats
-                    await loadReferralStats();
-                }
-            } catch (error) {
-                console.error("Error loading referral config:", error);
-            }
-        }
-
-        async function loadReferralStats() {
-            try {
-                // Count total referrals
-                const usersRef = db.collection("users");
-                const q = usersRef.where("referredBy", "!=", null);
-                const querySnapshot = await q.get();
-                
-                document.getElementById('total-referrals-count').textContent = querySnapshot.size;
-                
-                // Calculate total bonus given
-                let totalBonus = 0;
-                querySnapshot.forEach(doc => {
-                    const user = doc.data();
-                    // Assuming each referral gives 100 coins bonus (adjust based on your config)
-                    totalBonus += 100;
-                });
-                document.getElementById('total-bonus-given').textContent = `${totalBonus} coins`;
-                
-                // Count active referrers (users who have referred others)
-                const activeReferrers = new Set();
-                querySnapshot.forEach(doc => {
-                    const user = doc.data();
-                    activeReferrers.add(user.referredBy);
-                });
-                document.getElementById('active-referrers').textContent = activeReferrers.size;
-                
-            } catch (error) {
-                console.error("Error loading referral stats:", error);
-            }
-        }
-
-        async function updateReferralConfig() {
-            try {
-                const referrerBonus = parseInt(document.getElementById('referrer-bonus').value);
-                const refereeBonus = parseInt(document.getElementById('referee-bonus').value);
-                const enabled = document.getElementById('referral-enabled').checked;
-
-                await db.collection("config").doc("referral").set({
-                    referrerBonus: referrerBonus,
-                    refereeBonus: refereeBonus,
-                    enabled: enabled,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                showAlert("Referral configuration updated successfully!");
-            } catch (error) {
-                showAlert("Error updating referral config: " + error.message);
-            }
-        }
-
-        async function loadLevelConfig() {
-            try {
-                const configRef = db.collection("config").doc("levels");
-                const docSnap = await configRef.get();
-                
-                if (docSnap.exists()) {
-                    const config = docSnap.data();
-                    const levelsTable = document.getElementById('levels-table-body');
-                    levelsTable.innerHTML = '';
-                    
-                    if (config.levels) {
-                        for (const [level, data] of Object.entries(config.levels)) {
-                            levelsTable.innerHTML += `
-                                <tr>
-                                    <td class="font-bold py-2">${level}</td>
-                                    <td class="py-2"><input type="number" id="level-${level}-required" value="${data.requiredCoins}" class="form-input"></td>
-                                    <td class="py-2"><input type="number" id="level-${level}-bonus" value="${data.bonus}" class="form-input"></td>
-                                    <td class="py-2">
-                                        <button class="btn btn-primary text-xs" onclick="updateLevel(${level})">Update</button>
-                                        <button class="btn btn-danger text-xs" onclick="deleteLevel(${level})">Delete</button>
-                                    </td>
-                                </tr>
-                            `;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Error loading level config:", error);
-            }
-        }
-
-        window.updateLevel = async function(level) {
-            try {
-                const requiredCoins = parseInt(document.getElementById(`level-${level}-required`).value);
-                const bonus = parseInt(document.getElementById(`level-${level}-bonus`).value);
-                
-                if (isNaN(requiredCoins) || isNaN(bonus)) {
-                    return showAlert("Please enter valid numbers for required coins and bonus.");
-                }
-
-                const configRef = db.collection("config").doc("levels");
-                const docSnap = await configRef.get();
-                const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
-                
-                currentConfig.levels[level] = {
-                    requiredCoins: requiredCoins,
-                    bonus: bonus
-                };
-                
-                await configRef.set(currentConfig);
-                showAlert(`Level ${level} updated successfully!`);
-            } catch (error) {
-                showAlert("Error updating level: " + error.message);
-            }
-        }
-
-        window.addNewLevel = async function() {
-            try {
-                const level = parseInt(document.getElementById('new-level-number').value);
-                const requiredCoins = parseInt(document.getElementById('new-level-required').value);
-                const bonus = parseInt(document.getElementById('new-level-bonus').value);
-                
-                if (isNaN(level) || isNaN(requiredCoins) || isNaN(bonus)) {
-                    return showAlert("Please enter valid numbers for all fields.");
-                }
-
-                const configRef = db.collection("config").doc("levels");
-                const docSnap = await configRef.get();
-                const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
-                
-                currentConfig.levels[level] = {
-                    requiredCoins: requiredCoins,
-                    bonus: bonus
-                };
-                
-                await configRef.set(currentConfig);
-                showAlert(`Level ${level} added successfully!`);
-                
-                // Clear form
-                document.getElementById('new-level-number').value = '';
-                document.getElementById('new-level-required').value = '';
-                document.getElementById('new-level-bonus').value = '';
-                
-                // Reload levels
-                loadLevelConfig();
-            } catch (error) {
-                showAlert("Error adding level: " + error.message);
-            }
-        }
-
-        window.deleteLevel = async function(level) {
-            showConfirm(`Are you sure you want to delete level ${level}?`, async () => {
-                try {
-                    const configRef = db.collection("config").doc("levels");
-                    const docSnap = await configRef.get();
-                    const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
-                    
-                    delete currentConfig.levels[level];
-                    
-                    await configRef.set(currentConfig);
-                    showAlert(`Level ${level} deleted successfully!`);
-                    loadLevelConfig();
-                } catch (error) {
-                    showAlert("Error deleting level: " + error.message);
-                }
-            });
-        }
-
-        async function loadBalanceTypesConfig() {
-            try {
-                const configRef = db.collection("config").doc("balanceTypes");
-                const docSnap = await configRef.get();
-                
-                if (docSnap.exists()) {
-                    const config = docSnap.data();
-                    document.getElementById('gift-balance-amount').value = config.giftBalance || 50;
-                    document.getElementById('referral-bonus-amount').value = config.referralBonus || 100;
-                    document.getElementById('streak-bonus-amount').value = config.streakBonus || 100;
-                    document.getElementById('level-bonus-amount').value = config.levelBonus || 50;
-                    document.getElementById('daily-bonus-amount').value = config.dailyBonus || 25;
-
-                    // Load balance statistics
-                    await loadBalanceStatistics();
-                }
-            } catch (error) {
-                console.error("Error loading balance types config:", error);
-            }
-        }
-
-        async function loadBalanceStatistics() {
-            try {
-                // These would be calculated from user transactions in a real app
-                // For demo purposes, we'll use fixed values
-                document.getElementById('total-gift-balance').textContent = "1250 coins";
-                document.getElementById('total-referral-bonus').textContent = "5600 coins";
-                document.getElementById('total-streak-bonus').textContent = "3200 coins";
-                document.getElementById('total-level-bonus').textContent = "1800 coins";
-                document.getElementById('total-daily-bonus').textContent = "4500 coins";
-            } catch (error) {
-                console.error("Error loading balance statistics:", error);
-            }
-        }
-
-        async function updateBalanceTypesConfig() {
-            try {
-                const giftBalance = parseInt(document.getElementById('gift-balance-amount').value);
-                const referralBonus = parseInt(document.getElementById('referral-bonus-amount').value);
-                const streakBonus = parseInt(document.getElementById('streak-bonus-amount').value);
-                const levelBonus = parseInt(document.getElementById('level-bonus-amount').value);
-                const dailyBonus = parseInt(document.getElementById('daily-bonus-amount').value);
-
-                await db.collection("config").doc("balanceTypes").set({
-                    giftBalance: giftBalance,
-                    referralBonus: referralBonus,
-                    streakBonus: streakBonus,
-                    levelBonus: levelBonus,
-                    dailyBonus: dailyBonus,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                showAlert("Balance types configuration updated successfully!");
-            } catch (error) {
-                showAlert("Error updating balance types config: " + error.message);
-            }
-        }
-
-        async function loadSettings() {
-            try {
-                const configRef = db.collection("config").doc("main");
-                const docSnap = await configRef.get();
-                
-                if (docSnap.exists()) {
-                    const config = docSnap.data();
-                    document.getElementById('min-withdrawal').value = config.minWithdrawal || 5000;
-                    document.getElementById('daily-ad-limit').value = config.dailyAdLimit || 10;
-                    document.getElementById('coin-value-coins').value = config.coinValueCoins || 1000;
-                    document.getElementById('coin-value-inr').value = config.coinValueInr || 10;
-                    document.getElementById('payment-methods').value = (config.paymentMethods || []).join(',');
-                    document.getElementById('daily-login-bonus').value = config.dailyLoginBonus || 25;
-                    document.getElementById('streak-bonus').value = config.streakBonus || 100;
-                    document.getElementById('maintenance-mode').checked = config.maintenanceMode || false;
-                    document.getElementById('registration-enabled').checked = config.registrationEnabled !== false;
-                }
-
-                // Load notification settings
-                const notifConfigRef = db.collection("config").doc("notifications");
-                const notifSnap = await notifConfigRef.get();
-                if (notifSnap.exists()) {
-                    const notifConfig = notifSnap.data();
-                    document.getElementById('notification-sound-enabled').checked = notifConfig.soundEnabled !== false;
-                    document.getElementById('notification-bell-animation').checked = notifConfig.bellAnimation !== false;
-                }
-            } catch (error) {
-                console.error("Error loading settings:", error);
-            }
-        }
-
-        async function saveSettings() {
-            try {
-                const minWithdrawal = parseInt(document.getElementById('min-withdrawal').value);
-                const dailyAdLimit = parseInt(document.getElementById('daily-ad-limit').value);
-                const coinValueCoins = parseInt(document.getElementById('coin-value-coins').value);
-                const coinValueInr = parseInt(document.getElementById('coin-value-inr').value);
-                const paymentMethods = document.getElementById('payment-methods').value.split(',').map(s => s.trim()).filter(Boolean);
-                const dailyLoginBonus = parseInt(document.getElementById('daily-login-bonus').value);
-                const streakBonus = parseInt(document.getElementById('streak-bonus').value);
-                const maintenanceMode = document.getElementById('maintenance-mode').checked;
-                const registrationEnabled = document.getElementById('registration-enabled').checked;
-
-                await db.collection("config").doc("main").set({
-                    minWithdrawal: minWithdrawal,
-                    dailyAdLimit: dailyAdLimit,
-                    coinValueCoins: coinValueCoins,
-                    coinValueInr: coinValueInr,
-                    paymentMethods: paymentMethods,
-                    dailyLoginBonus: dailyLoginBonus,
-                    streakBonus: streakBonus,
-                    maintenanceMode: maintenanceMode,
-                    registrationEnabled: registrationEnabled,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                // Save notification settings
-                const soundEnabled = document.getElementById('notification-sound-enabled').checked;
-                const bellAnimation = document.getElementById('notification-bell-animation').checked;
-                
-                await db.collection("config").doc("notifications").set({
-                    soundEnabled: soundEnabled,
-                    bellAnimation: bellAnimation,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                showAlert("Settings saved successfully!");
-            } catch (error) {
-                showAlert("Error saving settings: " + error.message);
-            }
-        }
-
-        async function saveNotificationSettings() {
-            try {
-                const soundEnabled = document.getElementById('notification-sound-enabled').checked;
-                const bellAnimation = document.getElementById('notification-bell-animation').checked;
-                
-                await db.collection("config").doc("notifications").set({
-                    soundEnabled: soundEnabled,
-                    bellAnimation: bellAnimation,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                showAlert("Notification settings saved successfully!");
-            } catch (error) {
-                showAlert("Error saving notification settings: " + error.message);
-            }
-        }
-
-        async function resetSettings() {
-            showConfirm("Are you sure you want to reset all settings to default?", async () => {
-                try {
-                    const defaultSettings = {
-                        minWithdrawal: 5000,
-                        dailyAdLimit: 10,
-                        coinValueCoins: 1000,
-                        coinValueInr: 10,
-                        paymentMethods: ["Bkash", "Nagad", "Rocket"],
-                        dailyLoginBonus: 25,
-                        streakBonus: 100,
-                        maintenanceMode: false,
-                        registrationEnabled: true,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-
-                    await db.collection("config").doc("main").set(defaultSettings);
-                    
-                    // Reset notification settings
-                    await db.collection("config").doc("notifications").set({
-                        soundEnabled: true,
-                        bellAnimation: true,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-
-                    loadSettings();
-                    showAlert("Settings reset to default successfully!");
-                } catch (error) {
-                    showAlert("Error resetting settings: " + error.message);
-                }
-            });
-        }
-
-        async function sendNotification() {
-            const title = document.getElementById('notification-title').value;
-            const message = document.getElementById('notification-message').value;
-            const target = document.getElementById('notification-target').value;
-
-            if (!title || !message) {
-                return showAlert("Title and message are required.");
-            }
-
-            try {
-                await db.collection("notifications").add({
-                    title: title,
-                    message: message,
-                    target: target,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    sentBy: currentAdmin.uid
-                });
-
-                showAlert("Notification sent successfully!");
-                document.getElementById('notification-title').value = '';
-                document.getElementById('notification-message').value = '';
-                loadNotificationHistory();
-            } catch (error) {
-                showAlert("Error sending notification: " + error.message);
-            }
-        }
-
-        function updateMessagePreview() {
-            const imageUrl = document.getElementById('direct-message-image').value;
-            const description = document.getElementById('direct-message-description').value;
-            const buttonsText = document.getElementById('direct-message-buttons').value;
-
-            // Update image preview
-            if (imageUrl) {
-                document.getElementById('message-preview-image').classList.remove('hidden');
-                document.getElementById('preview-image').src = imageUrl;
-            } else {
-                document.getElementById('message-preview-image').classList.add('hidden');
-            }
-
-            // Update description preview
-            document.getElementById('preview-description').textContent = description || 'Your message preview will appear here...';
-
-            // Update buttons preview
-            const buttonsContainer = document.getElementById('preview-buttons');
-            buttonsContainer.innerHTML = '';
-            
-            if (buttonsText) {
-                buttonsContainer.classList.remove('hidden');
-                
-                // Parse buttons - support both new lines and pipe separators
-                const buttonRows = buttonsText.split('\n').filter(row => row.trim());
-                
-                buttonRows.forEach(row => {
-                    const buttonRow = document.createElement('div');
-                    buttonRow.className = 'telegram-button-row';
-                    
-                    // Split by pipe for multiple buttons in same row
-                    const buttonsInRow = row.split('|').filter(btn => btn.trim());
-                    
-                    buttonsInRow.forEach(btn => {
-                        const [text, url] = btn.split('-').map(part => part.trim());
-                        if (text && url) {
-                            const button = document.createElement('a');
-                            button.className = 'telegram-button';
-                            button.href = url;
-                            button.textContent = text;
-                            button.target = '_blank';
-                            buttonRow.appendChild(button);
-                        }
-                    });
-                    
-                    buttonsContainer.appendChild(buttonRow);
-                });
-            } else {
-                buttonsContainer.classList.add('hidden');
-            }
-        }
-
-        async function sendDirectMessage() {
-            const imageUrl = document.getElementById('direct-message-image').value;
-            const description = document.getElementById('direct-message-description').value;
-            const buttonsText = document.getElementById('direct-message-buttons').value;
-            const targetType = document.getElementById('direct-message-target').value;
-            const customUserIds = document.getElementById('custom-user-ids').value;
-            const enabled = document.getElementById('direct-message-enabled').checked;
-
-            if (!description) {
-                return showAlert("Message description is required.");
-            }
-
-            if (targetType === 'custom' && !customUserIds) {
-                return showAlert("Please enter user IDs for custom targeting.");
-            }
-
-            try {
-                let chatIds = [];
-
-                if (targetType === 'all') {
-                    // Get all user chat IDs from database
-                    const usersSnapshot = await db.collection("users").get();
-                    usersSnapshot.forEach(doc => {
-                        const user = doc.data();
-                        if (user.telegramData && user.telegramData.id) {
-                            chatIds.push(user.telegramData.id);
-                        }
-                    });
-                } else {
-                    // Use custom user IDs
-                    chatIds = customUserIds.split(',')
-                        .map(id => id.trim())
-                        .filter(id => id !== '');
-                }
-
-                // Send message to each user
-                let successCount = 0;
-                let failCount = 0;
-
-                for (const chatId of chatIds) {
-                    try {
-                        // Format the message with buttons if provided
-                        let message = description;
-                        if (imageUrl) {
-                            message = `🖼 ${message}`;
-                        }
-
-                        // Send the message
-                        const success = await sendTelegramMessage(BOT_TOKEN, chatId, message);
-                        
-                        if (success) {
-                            successCount++;
-                        } else {
-                            failCount++;
-                        }
-
-                        // Add delay to avoid rate limiting
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                    } catch (error) {
-                        console.error(`Error sending to ${chatId}:`, error);
-                        failCount++;
-                    }
-                }
-
-                // Save message to history
-                await db.collection("directMessages").add({
-                    imageUrl: imageUrl,
-                    description: description,
-                    buttons: buttonsText,
-                    targetType: targetType,
-                    customUserIds: customUserIds,
-                    enabled: enabled,
-                    successCount: successCount,
-                    failCount: failCount,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    sentBy: currentAdmin.uid
-                });
-
-                showAlert(`Direct message sent successfully! ${successCount} successful, ${failCount} failed.`);
-
-                // Clear form
-                document.getElementById('direct-message-image').value = '';
-                document.getElementById('direct-message-description').value = '';
-                document.getElementById('direct-message-buttons').value = '';
-                document.getElementById('custom-user-ids').value = '';
-                document.getElementById('direct-message-enabled').checked = true;
-
-                // Reset preview
-                updateMessagePreview();
-            } catch (error) {
-                showAlert("Error sending direct message: " + error.message);
-            }
-        }
-
-        async function loadNotificationHistory() {
-            try {
-                const q = db.collection("notifications").orderBy("createdAt", "desc").limit(10);
-                const querySnapshot = await q.get();
-                const historyContainer = document.getElementById('notification-history');
-                historyContainer.innerHTML = '';
-
-                if (querySnapshot.empty) {
-                    historyContainer.innerHTML = '<p class="text-gray-500 text-center p-4">No notifications sent yet.</p>';
-                    return;
-                }
-
-                querySnapshot.forEach(doc => {
-                    const notif = doc.data();
-                    const date = notif.createdAt ? notif.createdAt.toDate().toLocaleString() : 'N/A';
-                    historyContainer.innerHTML += `
-                        <div class="p-4 border-b border-gray-100">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="font-semibold text-gray-800">${notif.title}</h3>
-                                    <p class="text-sm text-gray-600 mt-1">${notif.message}</p>
-                                </div>
-                                <span class="text-xs text-gray-500 whitespace-nowrap">${date}</span>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-2">Target: ${notif.target || 'All users'}</div>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                console.error("Error loading notification history:", error);
-            }
-        }
-
-        async function checkAdServiceStatus() {
-            try {
-                const statusElement = document.getElementById('ad-service-status');
-                if (typeof window.show_9549781 === 'function') {
-                    statusElement.textContent = 'Active';
-                    statusElement.className = 'badge badge-success';
-                } else {
-                    statusElement.textContent = 'Inactive';
-                    statusElement.className = 'badge badge-danger';
-                }
-            } catch (error) {
-                console.error("Error checking ad service status:", error);
-            }
-        }
-
-        window.exportUsers = async function() {
-            try {
-                const querySnapshot = await db.collection("users").get();
-                let csvContent = "User ID,Name,Username,Balance,Level,Status,Joined Date\n";
-                
-                querySnapshot.forEach(doc => {
-                    const user = doc.data();
-                    const username = user.telegramData?.username || '';
-                    const name = user.telegramData?.first_name || '';
-                    const joinedDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
-                    
-                    csvContent += `"${doc.id}","${name}","${username}",${user.balance || 0},${user.level || 1},${user.isBlocked ? 'Blocked' : 'Active'},"${joinedDate}"\n`;
-                });
-
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", "users_export.csv");
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (error) {
-                showAlert("Error exporting users: " + error.message);
-            }
+        try {
+        const taskData = {
+            title,
+            description,
+            reward,
+            emoji: emoji || "✅",
+            global_limit: globalLimit,
+            order,
+            enabled
         };
 
-        function showAlert(message) {
-            document.getElementById('alert-message').textContent = message;
-            document.getElementById('custom-alert').classList.remove('hidden');
+        // Add optional fields based on task type
+        const type = document.getElementById('edit-task-type').value;
+        if (type === 'group_join') {
+            taskData.group_link = groupLink;
+            taskData.timer_seconds = timerSeconds || 5;
         }
 
-        function showConfirm(message, onConfirm) {
-            document.getElementById('confirm-message').textContent = message;
-            document.getElementById('custom-confirm').classList.remove('hidden');
-            
-            document.getElementById('confirm-ok-btn').onclick = () => {
-                document.getElementById('custom-confirm').classList.add('hidden');
-                onConfirm();
-            };
+        if (type === 'watch_video') {
+            taskData.video_url = videoUrl;
+            taskData.video_seconds = videoSeconds || 30;
         }
-    </script>
+
+        await db.collection("tasks").doc(currentEditingTaskId).update(taskData);
+        showAlert("Task updated successfully!");
+        closeEditTaskModal();
+        } catch (error) {
+        showAlert("Error updating task: " + error.message);
+        }
+    }
+
+    window.toggleTask = function(taskId, isEnabled) {
+        const action = isEnabled ? 'disable' : 'enable';
+        showConfirm(`Are you sure you want to ${action} this task?`, async () => {
+            try {
+                await db.collection("tasks").doc(taskId).update({ enabled: !isEnabled });
+                showAlert(`Task ${action}d successfully!`);
+            } catch (error) { 
+                showAlert("Error: " + error.message); 
+            }
+        });
+    }
+
+    window.deleteTask = function(taskId) {
+        showConfirm("Are you sure you want to delete this task? This action cannot be undone.", async () => {
+            try {
+                await db.collection("tasks").doc(taskId).delete();
+                showAlert("Task deleted successfully!");
+            } catch (error) { 
+                showAlert("Error: " + error.message); 
+            }
+        });
+    }
+
+    async function loadTaskConfig() {
+        try {
+            const configRef = db.collection("config").doc("tasks");
+            const docSnap = await configRef.get();
+            
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                document.getElementById('daily-task-limit').value = config.dailyLimit || 10;
+            }
+        } catch (error) {
+            console.error("Error loading task config:", error);
+        }
+    }
+
+    async function updateTaskConfig() {
+        try {
+            const dailyLimit = parseInt(document.getElementById('daily-task-limit').value);
+            
+            await db.collection("config").doc("tasks").set({
+                dailyLimit: dailyLimit,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            showAlert("Task configuration updated successfully!");
+        } catch (error) {
+            showAlert("Error updating task config: " + error.message);
+        }
+    }
+
+    async function loadReferralConfig() {
+        try {
+            const configRef = db.collection("config").doc("referral");
+            const docSnap = await configRef.get();
+            
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                document.getElementById('referrer-bonus').value = config.referrerBonus || 100;
+                document.getElementById('referee-bonus').value = config.refereeBonus || 100;
+                document.getElementById('referral-enabled').checked = config.enabled !== false;
+
+                // Load referral stats
+                await loadReferralStats();
+            }
+        } catch (error) {
+            console.error("Error loading referral config:", error);
+        }
+    }
+
+    async function loadReferralStats() {
+        try {
+            // Count total referrals
+            const usersRef = db.collection("users");
+            const q = usersRef.where("referredBy", "!=", null);
+            const querySnapshot = await q.get();
+            
+            document.getElementById('total-referrals-count').textContent = querySnapshot.size;
+            
+            // Calculate total bonus given
+            let totalBonus = 0;
+            querySnapshot.forEach(doc => {
+                const user = doc.data();
+                // Assuming each referral gives 100 coins bonus (adjust based on your config)
+                totalBonus += 100;
+            });
+            document.getElementById('total-bonus-given').textContent = `${totalBonus} coins`;
+            
+            // Count active referrers (users who have referred others)
+            const activeReferrers = new Set();
+            querySnapshot.forEach(doc => {
+                const user = doc.data();
+                activeReferrers.add(user.referredBy);
+            });
+            document.getElementById('active-referrers').textContent = activeReferrers.size;
+            
+        } catch (error) {
+            console.error("Error loading referral stats:", error);
+        }
+    }
+
+    async function updateReferralConfig() {
+        try {
+            const referrerBonus = parseInt(document.getElementById('referrer-bonus').value);
+            const refereeBonus = parseInt(document.getElementById('referee-bonus').value);
+            const enabled = document.getElementById('referral-enabled').checked;
+
+            await db.collection("config").doc("referral").set({
+                referrerBonus: referrerBonus,
+                refereeBonus: refereeBonus,
+                enabled: enabled,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            showAlert("Referral configuration updated successfully!");
+        } catch (error) {
+            showAlert("Error updating referral config: " + error.message);
+        }
+    }
+
+    async function loadLevelConfig() {
+        try {
+            const configRef = db.collection("config").doc("levels");
+            const docSnap = await configRef.get();
+            
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                const levelsTable = document.getElementById('levels-table-body');
+                levelsTable.innerHTML = '';
+                
+                if (config.levels) {
+                    for (const [level, data] of Object.entries(config.levels)) {
+                        levelsTable.innerHTML += `
+                            <tr>
+                                <td class="font-bold py-2">${level}</td>
+                                <td class="py-2"><input type="number" id="level-${level}-required" value="${data.requiredCoins}" class="form-input"></td>
+                                <td class="py-2"><input type="number" id="level-${level}-bonus" value="${data.bonus}" class="form-input"></td>
+                                <td class="py-2">
+                                    <button class="btn btn-primary text-xs" onclick="updateLevel(${level})">Update</button>
+                                    <button class="btn btn-danger text-xs" onclick="deleteLevel(${level})">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error loading level config:", error);
+        }
+    }
+
+    window.updateLevel = async function(level) {
+        try {
+            const requiredCoins = parseInt(document.getElementById(`level-${level}-required`).value);
+            const bonus = parseInt(document.getElementById(`level-${level}-bonus`).value);
+            
+            if (isNaN(requiredCoins) || isNaN(bonus)) {
+                return showAlert("Please enter valid numbers for required coins and bonus.");
+            }
+
+            const configRef = db.collection("config").doc("levels");
+            const docSnap = await configRef.get();
+            const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
+            
+            currentConfig.levels[level] = {
+                requiredCoins: requiredCoins,
+                bonus: bonus
+            };
+            
+            await configRef.set(currentConfig);
+            showAlert(`Level ${level} updated successfully!`);
+        } catch (error) {
+            showAlert("Error updating level: " + error.message);
+        }
+    }
+
+    window.addNewLevel = async function() {
+        try {
+            const level = parseInt(document.getElementById('new-level-number').value);
+            const requiredCoins = parseInt(document.getElementById('new-level-required').value);
+            const bonus = parseInt(document.getElementById('new-level-bonus').value);
+            
+            if (isNaN(level) || isNaN(requiredCoins) || isNaN(bonus)) {
+                return showAlert("Please enter valid numbers for all fields.");
+            }
+
+            const configRef = db.collection("config").doc("levels");
+            const docSnap = await configRef.get();
+            const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
+            
+            currentConfig.levels[level] = {
+                requiredCoins: requiredCoins,
+                bonus: bonus
+            };
+            
+            await configRef.set(currentConfig);
+            showAlert(`Level ${level} added successfully!`);
+            
+            // Clear form
+            document.getElementById('new-level-number').value = '';
+            document.getElementById('new-level-required').value = '';
+            document.getElementById('new-level-bonus').value = '';
+            
+            // Reload levels
+            loadLevelConfig();
+        } catch (error) {
+            showAlert("Error adding level: " + error.message);
+        }
+    }
+
+    window.deleteLevel = async function(level) {
+        showConfirm(`Are you sure you want to delete level ${level}?`, async () => {
+            try {
+                const configRef = db.collection("config").doc("levels");
+                const docSnap = await configRef.get();
+                const currentConfig = docSnap.exists() ? docSnap.data() : { levels: {} };
+                
+                delete currentConfig.levels[level];
+                
+                await configRef.set(currentConfig);
+                showAlert(`Level ${level} deleted successfully!`);
+                loadLevelConfig();
+            } catch (error) {
+                showAlert("Error deleting level: " + error.message);
+            }
+        });
+    }
+
+    async function loadBalanceTypesConfig() {
+        try {
+            const configRef = db.collection("config").doc("balanceTypes");
+            const docSnap = await configRef.get();
+            
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                document.getElementById('gift-balance-amount').value = config.giftBalance || 50;
+                document.getElementById('referral-bonus-amount').value = config.referralBonus || 100;
+                document.getElementById('streak-bonus-amount').value = config.streakBonus || 100;
+                document.getElementById('level-bonus-amount').value = config.levelBonus || 50;
+                document.getElementById('daily-bonus-amount').value = config.dailyBonus || 25;
+
+                // Load balance statistics
+                await loadBalanceStatistics();
+            }
+        } catch (error) {
+            console.error("Error loading balance types config:", error);
+        }
+    }
+
+    async function loadBalanceStatistics() {
+        try {
+            // These would be calculated from user transactions in a real app
+            // For demo purposes, we'll use fixed values
+            document.getElementById('total-gift-balance').textContent = "1250 coins";
+            document.getElementById('total-referral-bonus').textContent = "5600 coins";
+            document.getElementById('total-streak-bonus').textContent = "3200 coins";
+            document.getElementById('total-level-bonus').textContent = "1800 coins";
+            document.getElementById('total-daily-bonus').textContent = "4500 coins";
+        } catch (error) {
+            console.error("Error loading balance statistics:", error);
+        }
+    }
+
+    async function updateBalanceTypesConfig() {
+        try {
+            const giftBalance = parseInt(document.getElementById('gift-balance-amount').value);
+            const referralBonus = parseInt(document.getElementById('referral-bonus-amount').value);
+            const streakBonus = parseInt(document.getElementById('streak-bonus-amount').value);
+            const levelBonus = parseInt(document.getElementById('level-bonus-amount').value);
+            const dailyBonus = parseInt(document.getElementById('daily-bonus-amount').value);
+
+            await db.collection("config").doc("balanceTypes").set({
+                giftBalance: giftBalance,
+                referralBonus: referralBonus,
+                streakBonus: streakBonus,
+                levelBonus: levelBonus,
+                dailyBonus: dailyBonus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            showAlert("Balance types configuration updated successfully!");
+        } catch (error) {
+            showAlert("Error updating balance types config: " + error.message);
+        }
+    }
+
+    async function loadSettings() {
+        try {
+            const configRef = db.collection("config").doc("main");
+            const docSnap = await configRef.get();
+            
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                document.getElementById('min-withdrawal').value = config.minWithdrawal || 5000;
+                document.getElementById('daily-ad-limit').value = config.dailyAdLimit || 10;
+                document.getElementById('coin-value-coins').value = config.coinValueCoins || 1000;
+                document.getElementById('coin-value-inr').value = config.coinValueInr || 10;
+                document.getElementById('payment-methods').value = (config.paymentMethods || []).join(',');
+                document.getElementById('daily-login-bonus').value = config.dailyLoginBonus || 25;
+                document.getElementById('streak-bonus').value = config.streakBonus || 100;
+                document.getElementById('maintenance-mode').checked = config.maintenanceMode || false;
+                document.getElementById('registration-enabled').checked = config.registrationEnabled !== false;
+            }
+
+            // Load notification settings
+            const notifConfigRef = db.collection("config").doc("notifications");
+            const notifSnap = await notifConfigRef.get();
+            if (notifSnap.exists()) {
+                const notifConfig = notifSnap.data();
+                document.getElementById('notification-sound-enabled').checked = notifConfig.soundEnabled !== false;
+                document.getElementById('notification-bell-animation').checked = notifConfig.bellAnimation !== false;
+            }
+        } catch (error) {
+            console.error("Error loading settings:", error);
+        }
+    }
+
+    async function saveSettings() {
+        try {
+            const minWithdrawal = parseInt(document.getElementById('min-withdrawal').value);
+            const dailyAdLimit = parseInt(document.getElementById('daily-ad-limit').value);
+            const coinValueCoins = parseInt(document.getElementById('coin-value-coins').value);
+            const coinValueInr = parseInt(document.getElementById('coin-value-inr').value);
+            const paymentMethods = document.getElementById('payment-methods').value.split(',').map(s => s.trim()).filter(Boolean);
+            const dailyLoginBonus = parseInt(document.getElementById('daily-login-bonus').value);
+            const streakBonus = parseInt(document.getElementById('streak-bonus').value);
+            const maintenanceMode = document.getElementById('maintenance-mode').checked;
+            const registrationEnabled = document.getElementById('registration-enabled').checked;
+
+            await db.collection("config").doc("main").set({
+                minWithdrawal: minWithdrawal,
+                dailyAdLimit: dailyAdLimit,
+                coinValueCoins: coinValueCoins,
+                coinValueInr: coinValueInr,
+                paymentMethods: paymentMethods,
+                dailyLoginBonus: dailyLoginBonus,
+                streakBonus: streakBonus,
+                maintenanceMode: maintenanceMode,
+                registrationEnabled: registrationEnabled,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Save notification settings
+            const soundEnabled = document.getElementById('notification-sound-enabled').checked;
+            const bellAnimation = document.getElementById('notification-bell-animation').checked;
+            
+            await db.collection("config").doc("notifications").set({
+                soundEnabled: soundEnabled,
+                bellAnimation: bellAnimation,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            showAlert("Settings saved successfully!");
+        } catch (error) {
+            showAlert("Error saving settings: " + error.message);
+        }
+    }
+
+    async function saveNotificationSettings() {
+        try {
+            const soundEnabled = document.getElementById('notification-sound-enabled').checked;
+            const bellAnimation = document.getElementById('notification-bell-animation').checked;
+            
+            await db.collection("config").doc("notifications").set({
+                soundEnabled: soundEnabled,
+                bellAnimation: bellAnimation,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            showAlert("Notification settings saved successfully!");
+        } catch (error) {
+            showAlert("Error saving notification settings: " + error.message);
+        }
+    }
+
+    async function resetSettings() {
+        showConfirm("Are you sure you want to reset all settings to default?", async () => {
+            try {
+                const defaultSettings = {
+                    minWithdrawal: 5000,
+                    dailyAdLimit: 10,
+                    coinValueCoins: 1000,
+                    coinValueInr: 10,
+                    paymentMethods: ["Bkash", "Nagad", "Rocket"],
+                    dailyLoginBonus: 25,
+                    streakBonus: 100,
+                    maintenanceMode: false,
+                    registrationEnabled: true,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection("config").doc("main").set(defaultSettings);
+                
+                // Reset notification settings
+                await db.collection("config").doc("notifications").set({
+                    soundEnabled: true,
+                    bellAnimation: true,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                loadSettings();
+                showAlert("Settings reset to default successfully!");
+            } catch (error) {
+                showAlert("Error resetting settings: " + error.message);
+            }
+        });
+    }
+
+    async function sendNotification() {
+        const title = document.getElementById('notification-title').value;
+        const message = document.getElementById('notification-message').value;
+        const target = document.getElementById('notification-target').value;
+
+        if (!title || !message) {
+            return showAlert("Title and message are required.");
+        }
+
+        try {
+            await db.collection("notifications").add({
+                title: title,
+                message: message,
+                target: target,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                sentBy: currentAdmin.uid
+            });
+
+            showAlert("Notification sent successfully!");
+            document.getElementById('notification-title').value = '';
+            document.getElementById('notification-message').value = '';
+            loadNotificationHistory();
+        } catch (error) {
+            showAlert("Error sending notification: " + error.message);
+        }
+    }
+
+    function updateMessagePreview() {
+        const imageUrl = document.getElementById('direct-message-image').value;
+        const description = document.getElementById('direct-message-description').value;
+        const buttonsText = document.getElementById('direct-message-buttons').value;
+
+        // Update image preview
+        if (imageUrl) {
+            document.getElementById('message-preview-image').classList.remove('hidden');
+            document.getElementById('preview-image').src = imageUrl;
+        } else {
+            document.getElementById('message-preview-image').classList.add('hidden');
+        }
+
+        // Update description preview
+        document.getElementById('preview-description').textContent = description || 'Your message preview will appear here...';
+
+        // Update buttons preview
+        const buttonsContainer = document.getElementById('preview-buttons');
+        buttonsContainer.innerHTML = '';
+        
+        if (buttonsText) {
+            buttonsContainer.classList.remove('hidden');
+            
+            // Parse buttons - support both new lines and pipe separators
+            const buttonRows = buttonsText.split('\n').filter(row => row.trim());
+            
+            buttonRows.forEach(row => {
+                const buttonRow = document.createElement('div');
+                buttonRow.className = 'telegram-button-row';
+                
+                // Split by pipe for multiple buttons in same row
+                const buttonsInRow = row.split('|').filter(btn => btn.trim());
+                
+                buttonsInRow.forEach(btn => {
+                    const [text, url] = btn.split('-').map(part => part.trim());
+                    if (text && url) {
+                        const button = document.createElement('a');
+                        button.className = 'telegram-button';
+                        button.href = url;
+                        button.textContent = text;
+                        button.target = '_blank';
+                        buttonRow.appendChild(button);
+                    }
+                });
+                
+                buttonsContainer.appendChild(buttonRow);
+            });
+        } else {
+            buttonsContainer.classList.add('hidden');
+        }
+    }
+
+    async function sendDirectMessage() {
+        const imageUrl = document.getElementById('direct-message-image').value;
+        const description = document.getElementById('direct-message-description').value;
+        const buttonsText = document.getElementById('direct-message-buttons').value;
+        const targetType = document.getElementById('direct-message-target').value;
+        const customUserIds = document.getElementById('custom-user-ids').value;
+        const enabled = document.getElementById('direct-message-enabled').checked;
+
+        if (!description) {
+            return showAlert("Message description is required.");
+        }
+
+        if (targetType === 'custom' && !customUserIds) {
+            return showAlert("Please enter user IDs for custom targeting.");
+        }
+
+        try {
+            let chatIds = [];
+
+            if (targetType === 'all') {
+                // Get all user chat IDs from database
+                const usersSnapshot = await db.collection("users").get();
+                usersSnapshot.forEach(doc => {
+                    const user = doc.data();
+                    if (user.telegramData && user.telegramData.id) {
+                        chatIds.push(user.telegramData.id);
+                    }
+                });
+            } else {
+                // Use custom user IDs
+                chatIds = customUserIds.split(',')
+                    .map(id => id.trim())
+                    .filter(id => id !== '');
+            }
+
+            // Send message to each user
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const chatId of chatIds) {
+                try {
+                    // Format the message with buttons if provided
+                    let message = description;
+                    if (imageUrl) {
+                        message = `🖼 ${message}`;
+                    }
+
+                    // Send the message
+                    const success = await sendTelegramMessage(BOT_TOKEN, chatId, message);
+                    
+                    if (success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+
+                    // Add delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`Error sending to ${chatId}:`, error);
+                    failCount++;
+                }
+            }
+
+            // Save message to history
+            await db.collection("directMessages").add({
+                imageUrl: imageUrl,
+                description: description,
+                buttons: buttonsText,
+                targetType: targetType,
+                customUserIds: customUserIds,
+                enabled: enabled,
+                successCount: successCount,
+                failCount: failCount,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                sentBy: currentAdmin.uid
+            });
+
+            showAlert(`Direct message sent successfully! ${successCount} successful, ${failCount} failed.`);
+
+            // Clear form
+            document.getElementById('direct-message-image').value = '';
+            document.getElementById('direct-message-description').value = '';
+            document.getElementById('direct-message-buttons').value = '';
+            document.getElementById('custom-user-ids').value = '';
+            document.getElementById('direct-message-enabled').checked = true;
+
+            // Reset preview
+            updateMessagePreview();
+        } catch (error) {
+            showAlert("Error sending direct message: " + error.message);
+        }
+    }
+
+    async function loadNotificationHistory() {
+        try {
+            const q = db.collection("notifications").orderBy("createdAt", "desc").limit(10);
+            const querySnapshot = await q.get();
+            const historyContainer = document.getElementById('notification-history');
+            historyContainer.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                historyContainer.innerHTML = '<p class="text-gray-500 text-center p-4">No notifications sent yet.</p>';
+                return;
+            }
+
+            querySnapshot.forEach(doc => {
+                const notif = doc.data();
+                const date = notif.createdAt ? notif.createdAt.toDate().toLocaleString() : 'N/A';
+                historyContainer.innerHTML += `
+                    <div class="p-4 border-b border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-gray-800">${notif.title}</h3>
+                                <p class="text-sm text-gray-600 mt-1">${notif.message}</p>
+                            </div>
+                            <span class="text-xs text-gray-500 whitespace-nowrap">${date}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2">Target: ${notif.target || 'All users'}</div>
+                    </div>
+                `;
+            });
+        } catch (error) {
+            console.error("Error loading notification history:", error);
+        }
+    }
+
+    async function checkAdServiceStatus() {
+        try {
+            const statusElement = document.getElementById('ad-service-status');
+            if (typeof window.show_9549781 === 'function') {
+                statusElement.textContent = 'Active';
+                statusElement.className = 'badge badge-success';
+            } else {
+                statusElement.textContent = 'Inactive';
+                statusElement.className = 'badge badge-danger';
+            }
+        } catch (error) {
+            console.error("Error checking ad service status:", error);
+        }
+    }
+
+    window.exportUsers = async function() {
+        try {
+            const querySnapshot = await db.collection("users").get();
+            let csvContent = "User ID,Name,Username,Balance,Level,Status,Joined Date\n";
+            
+            querySnapshot.forEach(doc => {
+                const user = doc.data();
+                const username = user.telegramData?.username || '';
+                const name = user.telegramData?.first_name || '';
+                const joinedDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+                
+                csvContent += `"${doc.id}","${name}","${username}",${user.balance || 0},${user.level || 1},${user.isBlocked ? 'Blocked' : 'Active'},"${joinedDate}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "users_export.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            showAlert("Error exporting users: " + error.message);
+        }
+    };
+
+    function showAlert(message) {
+        document.getElementById('alert-message').textContent = message;
+        document.getElementById('custom-alert').classList.remove('hidden');
+    }
+
+    function showConfirm(message, onConfirm) {
+        document.getElementById('confirm-message').textContent = message;
+        document.getElementById('custom-confirm').classList.remove('hidden');
+        
+        document.getElementById('confirm-ok-btn').onclick = () => {
+            document.getElementById('custom-confirm').classList.add('hidden');
+            onConfirm();
+        };
+    }
+</script>
 </body>
 </html>
